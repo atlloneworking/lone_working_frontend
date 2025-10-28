@@ -5,6 +5,29 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Lone Worker</title>
   <link rel="manifest" href="manifest.json">
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+    }
+    input {
+      margin: 5px;
+      padding: 5px;
+    }
+    button {
+      margin: 5px;
+      padding: 5px 10px;
+    }
+    .checkin-completed {
+      color: green;
+    }
+    .checkin-canceled {
+      color: blue;
+    }
+    .checkin-expired {
+      color: red;
+    }
+  </style>
 </head>
 <body>
   <h1>Lone Worker Check-In</h1>
@@ -14,13 +37,17 @@
   <input id="minutes" type="number" placeholder="Minutes">
 
   <button id="checkin">Check In</button>
-  <button id="cancel">Cancel Check-In</button> <!-- Added cancel button -->
+  <button id="cancel">Cancel Check-In</button>
 
   <!-- Confirmation messages -->
-  <div id="confirmation" style="color: green; margin-top: 10px; display: none;"></div>
+  <div id="confirmation" style="margin-top: 10px; display: none;"></div>
 
-  <!-- Optional: Active check-ins list -->
+  <!-- Active check-ins -->
   <div id="activeCheckins" style="margin-top: 20px;"></div>
+
+  <!-- Check-in history -->
+  <h2>Check-In History</h2>
+  <div id="checkinHistory" style="margin-top: 10px;"></div>
 
   <script src="app.js"></script>
 </body>

@@ -22,6 +22,32 @@ async function updateActiveCheckins() {
   }
 }
 
+// ----- Function to fetch and display check-in history -----
+async function updateCheckinHistory() {
+  try {
+    const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
+    const data = await response.json();
+
+    const container = document.getElementById("checkinHistory");
+    if (data.length === 0) {
+      container.innerHTML = "<p>No check-in history.</p>";
+      return;
+    }
+
+    let html = "<h3>Check-In History:</h3><ul>";
+    data.forEach(c => {
+      const status = c.canceled_at ? "Canceled" : c.expired_at ? "Expired" : "Completed";
+      const timestamp = new Date(c.checked_in_at).toLocaleString();
+      html += `<li>${c.user} at ${c.site} - ${status} (Checked in: ${timestamp})</li>`;
+    });
+    html += "</ul>";
+    container.innerHTML = html;
+
+  } catch (error) {
+    console.error("💥 Error fetching check-in history:", error);
+  }
+}
+
 // ----- Check-In Button -----
 document.getElementById("checkin").onclick = async () => {
   const user = document.getElementById("user").value;
@@ -42,8 +68,6 @@ document.getElementById("checkin").onclick = async () => {
       })
     });
 
-    console.log("📡 Request sent, awaiting response...");
-
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`❌ Server returned ${response.status}:`, errorText);
@@ -52,10 +76,7 @@ document.getElementById("checkin").onclick = async () => {
       confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.color = "red";
-
-      setTimeout(() => {
-        confirmationDiv.style.display = "none";
-      }, 5000);
+      setTimeout(() => { confirmationDiv.style.display = "none"; }, 5000);
       return;
     }
 
@@ -67,11 +88,10 @@ document.getElementById("checkin").onclick = async () => {
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "green";
 
-    updateActiveCheckins(); // Update active list
+    updateActiveCheckins();   // Update active check-ins
+    updateCheckinHistory();   // Update history
 
-    setTimeout(() => {
-      confirmationDiv.style.display = "none";
-    }, 3000);
+    setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
 
   } catch (error) {
     console.error("💥 Network or fetch error:", error);
@@ -105,10 +125,7 @@ document.getElementById("cancel").onclick = async () => {
       confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.color = "red";
-
-      setTimeout(() => {
-        confirmationDiv.style.display = "none";
-      }, 5000);
+      setTimeout(() => { confirmationDiv.style.display = "none"; }, 5000);
       return;
     }
 
@@ -120,11 +137,10 @@ document.getElementById("cancel").onclick = async () => {
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "blue";
 
-    updateActiveCheckins(); // Update active list
+    updateActiveCheckins();   // Update active check-ins
+    updateCheckinHistory();   // Update history
 
-    setTimeout(() => {
-      confirmationDiv.style.display = "none";
-    }, 3000);
+    setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
 
   } catch (error) {
     console.error("💥 Network or fetch error:", error);
@@ -135,6 +151,10 @@ document.getElementById("cancel").onclick = async () => {
   }
 };
 
-// ----- Auto-refresh active check-ins every 30 seconds -----
-updateActiveCheckins(); // initial load
-setInterval(updateActiveCheckins, 30000);
+// ----- Auto-refresh every 30 seconds -----
+updateActiveCheckins();   // initial load
+updateCheckinHistory();   // initial load
+setInterval(() => {
+  updateActiveCheckins();
+  updateCheckinHistory();
+}, 30000);
