@@ -1,3 +1,27 @@
+// ----- Function to fetch and display active check-ins -----
+async function updateActiveCheckins() {
+  try {
+    const response = await fetch("https://loneworking-production.up.railway.app/checkins");
+    const data = await response.json();
+
+    const container = document.getElementById("activeCheckins");
+    if (data.length === 0) {
+      container.innerHTML = "<p>No active check-ins.</p>";
+      return;
+    }
+
+    let html = "<h3>Active Check-Ins:</h3><ul>";
+    data.forEach(c => {
+      html += `<li>${c.user} at ${c.site} (expires at ${new Date(c.expires).toLocaleTimeString()})</li>`;
+    });
+    html += "</ul>";
+    container.innerHTML = html;
+
+  } catch (error) {
+    console.error("💥 Error fetching active check-ins:", error);
+  }
+}
+
 // ----- Check-In Button -----
 document.getElementById("checkin").onclick = async () => {
   const user = document.getElementById("user").value;
@@ -42,6 +66,8 @@ document.getElementById("checkin").onclick = async () => {
     confirmationDiv.textContent = data.message;
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "green";
+
+    updateActiveCheckins(); // Update active list
 
     setTimeout(() => {
       confirmationDiv.style.display = "none";
@@ -94,6 +120,8 @@ document.getElementById("cancel").onclick = async () => {
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "blue";
 
+    updateActiveCheckins(); // Update active list
+
     setTimeout(() => {
       confirmationDiv.style.display = "none";
     }, 3000);
@@ -106,3 +134,7 @@ document.getElementById("cancel").onclick = async () => {
     confirmationDiv.style.color = "red";
   }
 };
+
+// ----- Auto-refresh active check-ins every 30 seconds -----
+updateActiveCheckins(); // initial load
+setInterval(updateActiveCheckins, 30000);
