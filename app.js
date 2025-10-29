@@ -47,10 +47,48 @@ async function updateActiveCheckins() {
 
         let html = "<h2>Active Check-Ins</h2><ul>";
         data.forEach(c => {
-            html += `<li>${escapeHtml(c.user)} at ${escapeHtml(c.site)} <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span></li>`;
+            html += `
+                <li>
+                    ${escapeHtml(c.user)} at ${escapeHtml(c.site)} 
+                    <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span>
+                    <button class="cancel-btn" data-user="${encodeURIComponent(c.user)}" data-site="${encodeURIComponent(c.site)}" style="margin-left:10px; padding:2px 6px; font-size:14px; background-color:#e74c3c; color:white; border:none; border-radius:4px;">Cancel</button>
+                </li>`;
         });
         html += "</ul>";
         container.innerHTML = html;
+
+        // Add click handlers to all cancel buttons
+        const buttons = container.querySelectorAll(".cancel-btn");
+        buttons.forEach(btn => {
+            btn.onclick = async () => {
+                const user = decodeURIComponent(btn.getAttribute("data-user"));
+                const site = decodeURIComponent(btn.getAttribute("data-site"));
+
+                if (!confirm(`Are you sure you want to cancel check-in for ${user} at ${site}?`)) return;
+
+                try {
+                    const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
+                        method: "POST",
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ user_id: user, site: site })
+                    });
+
+                    const confirmationDiv = document.getElementById("confirmation");
+                    const data = await response.json();
+
+                    confirmationDiv.textContent = data.message;
+                    confirmationDiv.style.display = "block";
+                    confirmationDiv.style.backgroundColor = "#cce5ff";
+                    confirmationDiv.style.color = "#004085";
+
+                    updateActiveCheckins();
+                    updateCheckinHistory();
+                    setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
+                } catch (error) {
+                    console.error(error);
+                }
+            };
+        });
 
     } catch (error) {
         console.error("💥 Error fetching active check-ins:", error);
@@ -135,7 +173,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
         const checkoutTimeInput = document.getElementById("checkinTime");
-        const checkoutTime = checkoutTimeInput.value; // directly use value from type="time"
+        const checkoutTime = checkoutTimeInput.value;
 
         if (!user || !site) {
             alert("Please enter both User ID and Site.");
@@ -194,7 +232,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // Check-Out Button
+    // Check-Out Button (general)
     document.getElementById("checkout").onclick = async () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
