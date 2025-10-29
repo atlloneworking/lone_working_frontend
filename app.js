@@ -71,39 +71,57 @@ async function updateCheckinHistory() {
       return;
     }
 
-    // Sort newest first
+    // ✅ Sort newest sessions first (most recent at top)
     data.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
 
-    let html = "<ul style='list-style:none; padding-left:0; margin:0;'>";
-    data.forEach(c => {
-      const isCheckout = !!c.canceled_at;
-      const isExpired = !!c.expired_at;
-      let statusIcon = "✅";
-      let statusText = "Check In";
-      let color = "#2ecc71";
+    let html = `
+      <div style="display:flex; flex-direction:column; gap:10px;">
+    `;
 
-      if (isCheckout) {
-        statusIcon = "🚪";
-        statusText = "Check Out";
-        color = "#e67e22";
-      } else if (isExpired) {
-        statusIcon = "⚠️";
-        statusText = "Expired";
-        color = "#e74c3c";
+    data.forEach(c => {
+      const checkInTime = new Date(c.checked_in_at).toLocaleString();
+      const checkOutTime = c.canceled_at
+        ? new Date(c.canceled_at).toLocaleString()
+        : c.expired_at
+        ? new Date(c.expired_at).toLocaleString()
+        : null;
+
+      // Build record block with card-like styling
+      html += `
+        <div style="
+          border: 1px solid #ddd;
+          border-radius: 8px;
+          padding: 10px 12px;
+          background: #fafafa;
+          box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        ">
+          <div style="font-weight:bold; margin-bottom:4px;">
+            ${escapeHtml(c.user)} — <span style="color:#555;">${escapeHtml(c.site)}</span>
+          </div>
+      `;
+
+      // 🟧 Show Check Out / Expired first
+      if (checkOutTime) {
+        const isCheckout = !!c.canceled_at;
+        const cssColor = isCheckout ? "#e67e22" : "#e74c3c";
+        const action = isCheckout ? "🚪 Check Out" : "⚠️ Expired";
+        html += `
+          <div style="color:${cssColor}; margin-bottom:3px;">
+            ${checkOutTime} — <strong>${action}</strong>
+          </div>
+        `;
       }
 
-      const timestamp = new Date(c.checked_in_at).toLocaleString();
-
+      // 🟩 Then show Check In below
       html += `
-        <li style="margin-bottom:8px; border-bottom:1px solid #eee; padding:6px 0;">
-          <strong>${escapeHtml(c.user)}</strong> |
-          <span style="color:#555;">${escapeHtml(c.site)}</span> |
-          <span style="color:#888;">${timestamp}</span> |
-          <span style="color:${color}; font-weight:600;">${statusIcon} ${statusText}</span>
-        </li>`;
+          <div style="color:#2ecc71;">
+            ${checkInTime} — <strong>✅ Check In</strong>
+          </div>
+        </div>
+      `;
     });
-    html += "</ul>";
 
+    html += "</div>";
     container.innerHTML = html;
 
   } catch (error) {
@@ -112,6 +130,7 @@ async function updateCheckinHistory() {
     if (container) container.innerHTML = "<p>Error loading history.</p>";
   }
 }
+
 
 // ===== Escape HTML helper =====
 function escapeHtml(str) {
