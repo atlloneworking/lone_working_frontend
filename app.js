@@ -71,7 +71,6 @@ async function updateCheckinHistory() {
             return;
         }
 
-        // Sort by end time (canceled_at / expired_at) descending
         data.sort((a, b) => {
             const aEnd = a.canceled_at || a.expired_at || a.checked_in_at;
             const bEnd = b.canceled_at || b.expired_at || b.checked_in_at;
@@ -98,7 +97,6 @@ async function updateCheckinHistory() {
                     </div>
             `;
 
-            // Show Check Out / Expired on top
             if (checkOutTime) {
                 const isCheckout = !!c.canceled_at;
                 const cssColor = isCheckout ? "#e67e22" : "#e74c3c";
@@ -106,9 +104,8 @@ async function updateCheckinHistory() {
                 html += `<div style="color:${cssColor}; margin-bottom:3px;">${checkOutTime} — <strong>${action}</strong></div>`;
             }
 
-            // Show Check In below
             html += `<div style="color:#2ecc71;">${checkInTime} — <strong>✅ Check In</strong></div>`;
-            html += `</div>`; // end card
+            html += `</div>`;
         });
 
         html += "</div>";
@@ -137,39 +134,20 @@ document.addEventListener("DOMContentLoaded", () => {
     document.getElementById("checkin").onclick = async () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
-        const checkoutTimeInput = document.getElementById("checkoutTime");
-        let checkoutTime = checkoutTimeInput ? checkoutTimeInput.value : "";
+        const checkoutTimeInput = document.getElementById("checkinTime");
+        const checkoutTime = checkoutTimeInput.value; // directly use value from type="time"
 
         if (!user || !site) {
             alert("Please enter both User ID and Site.");
             return;
         }
 
-        // ===== Robust checkout time validation =====
-        checkoutTime = checkoutTime.replace(/\s|\u00A0|\u200B/g, '');
-
         if (!checkoutTime) {
-            alert("Please enter a valid check-out time (HH:MM).");
+            alert("Please enter a valid check-out time.");
             return;
         }
 
-        const parts = checkoutTime.split(":");
-        if (parts.length !== 2) {
-            alert("Please enter a valid check-out time (HH:MM).");
-            return;
-        }
-
-        const hours = Number(parts[0]);
-        const minutes = Number(parts[1]);
-
-        if (
-            isNaN(hours) || isNaN(minutes) ||
-            hours < 0 || hours > 23 ||
-            minutes < 0 || minutes > 59
-        ) {
-            alert("Invalid time entered. Use HH:MM 24-hour format.");
-            return;
-        }
+        const [hours, minutes] = checkoutTime.split(":").map(Number);
 
         const now = new Date();
         const expires = new Date(
