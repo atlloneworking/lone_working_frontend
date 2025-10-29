@@ -205,8 +205,6 @@ document.addEventListener("DOMContentLoaded", () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
         let checkoutTime = document.getElementById("checkinTime").value.trim();
-
-        // Remove invisible/whitespace characters
         checkoutTime = checkoutTime.replace(/\s|\u00A0|\u200B/g, '');
 
         if (!user || !site) {
