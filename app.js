@@ -138,7 +138,7 @@ document.addEventListener("DOMContentLoaded", () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
         const checkoutTimeInput = document.getElementById("checkoutTime");
-        const checkoutTime = checkoutTimeInput ? checkoutTimeInput.value : "";
+        const checkoutTime = checkoutTimeInput ? checkoutTimeInput.value.trim() : "";
 
         if (!user || !site) {
             alert("Please enter both User ID and Site.");
@@ -150,14 +150,31 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        const now = new Date();
-        const [hours, minutes] = checkoutTime.split(":").map(Number);
-        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+        // Split and trim to avoid hidden spaces or formatting issues
+        const parts = checkoutTime.split(":").map(s => s.trim());
+        if (parts.length !== 2) {
+            alert("Please enter a valid check-out time (HH:MM).");
+            return;
+        }
+
+        const hours = Number(parts[0]);
+        const minutes = Number(parts[1]);
+
+        if (
+            isNaN(hours) || isNaN(minutes) ||
+            hours < 0 || hours > 23 ||
+            minutes < 0 || minutes > 59
+        ) {
             alert("Invalid time entered. Use HH:MM 24-hour format.");
             return;
         }
 
-        const expires = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
+        const now = new Date();
+        const expires = new Date(
+            now.getFullYear(), now.getMonth(), now.getDate(),
+            hours, minutes, 0, 0
+        );
+
         const minutesUntilCheckout = Math.ceil((expires - now) / 60000);
 
         if (minutesUntilCheckout <= 0) {
