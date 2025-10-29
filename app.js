@@ -45,19 +45,36 @@ async function updateActiveCheckins() {
             return;
         }
 
-        let html = "<h2>Active Check-Ins</h2><ul>";
+        let html = "<h2>Active Check-Ins</h2><ul style='padding-left:0; list-style:none;'>";
         data.forEach(c => {
             html += `
-                <li>
-                    ${escapeHtml(c.user)} at ${escapeHtml(c.site)} 
-                    <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span>
-                    <button class="cancel-btn" data-user="${encodeURIComponent(c.user)}" data-site="${encodeURIComponent(c.site)}" style="margin-left:10px; padding:2px 6px; font-size:14px; background-color:#e74c3c; color:white; border:none; border-radius:4px;">Cancel</button>
+                <li style="margin-bottom:8px; display:flex; flex-wrap:wrap; align-items:center; justify-content: space-between;">
+                    <div style="flex:1 1 auto; min-width:150px; margin-right:10px;">
+                        <span style="display:block; font-weight:500;">${escapeHtml(c.user)}</span>
+                        <span style="display:block; color:#555;">${escapeHtml(c.site)}</span>
+                        <span style="display:block; color:#888; font-size:14px;">Expires: ${new Date(c.expires).toLocaleTimeString()}</span>
+                    </div>
+                    <button class="cancel-btn" 
+                        data-user="${encodeURIComponent(c.user)}" 
+                        data-site="${encodeURIComponent(c.site)}" 
+                        style="
+                            flex: 0 0 auto;
+                            padding:10px 14px;
+                            font-size:16px; 
+                            background-color:#e74c3c; 
+                            color:white; 
+                            border:none; 
+                            border-radius:6px;
+                            cursor:pointer;
+                            margin-top:5px;
+                        "
+                    >Cancel</button>
                 </li>`;
         });
         html += "</ul>";
         container.innerHTML = html;
 
-        // Add click handlers to all cancel buttons
+        // Add click handlers to cancel buttons
         const buttons = container.querySelectorAll(".cancel-btn");
         buttons.forEach(btn => {
             btn.onclick = async () => {
@@ -95,7 +112,7 @@ async function updateActiveCheckins() {
     }
 }
 
-// ===== Fetch and display check-in history (grouped by session) =====
+// ===== Fetch and display check-in history =====
 async function updateCheckinHistory() {
     try {
         const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
@@ -168,6 +185,18 @@ function escapeHtml(str) {
 
 // ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", () => {
+    // Make checkinTime input full width
+    const checkoutInput = document.getElementById("checkinTime");
+    if (checkoutInput) {
+        checkoutInput.style.width = "100%";
+        checkoutInput.style.boxSizing = "border-box";
+        checkoutInput.style.padding = "10px";
+        checkoutInput.style.fontSize = "16px";
+        checkoutInput.style.border = "1px solid #ccc";
+        checkoutInput.style.borderRadius = "6px";
+        checkoutInput.style.marginBottom = "10px";
+    }
+
     // Check-In Button
     document.getElementById("checkin").onclick = async () => {
         const user = document.getElementById("user").value.trim();
