@@ -138,20 +138,22 @@ document.addEventListener("DOMContentLoaded", () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
         const checkoutTimeInput = document.getElementById("checkoutTime");
-        const checkoutTime = checkoutTimeInput ? checkoutTimeInput.value.trim() : "";
+        let checkoutTime = checkoutTimeInput ? checkoutTimeInput.value : "";
 
         if (!user || !site) {
             alert("Please enter both User ID and Site.");
             return;
         }
 
+        // ===== Robust checkout time validation =====
+        checkoutTime = checkoutTime.replace(/\s|\u00A0|\u200B/g, '');
+
         if (!checkoutTime) {
             alert("Please enter a valid check-out time (HH:MM).");
             return;
         }
 
-        // Split and trim to avoid hidden spaces or formatting issues
-        const parts = checkoutTime.split(":").map(s => s.trim());
+        const parts = checkoutTime.split(":");
         if (parts.length !== 2) {
             alert("Please enter a valid check-out time (HH:MM).");
             return;
