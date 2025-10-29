@@ -135,30 +135,50 @@ function escapeHtml(str) {
 document.addEventListener("DOMContentLoaded", () => {
     // Check-In Button
     document.getElementById("checkin").onclick = async () => {
-        const user = document.getElementById("user").value;
-        const site = document.getElementById("site").value;
-        const checkoutTime = document.getElementById("checkoutTime").value; // new time input
+        const user = document.getElementById("user").value.trim();
+        const site = document.getElementById("site").value.trim();
+        const checkoutTimeInput = document.getElementById("checkoutTime");
+        const checkoutTime = checkoutTimeInput ? checkoutTimeInput.value : "";
 
-        if (!checkoutTime) {
-            alert("Please enter a valid check-out time.");
+        if (!user || !site) {
+            alert("Please enter both User ID and Site.");
             return;
         }
 
-        // Construct expiration datetime using today’s date + entered time
+        if (!checkoutTime || !/^\d{2}:\d{2}$/.test(checkoutTime)) {
+            alert("Please enter a valid check-out time in HH:MM format.");
+            return;
+        }
+
         const now = new Date();
         const [hours, minutes] = checkoutTime.split(":").map(Number);
         const expires = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+        const minutesUntilCheckout = Math.ceil((expires - now) / 60000);
+
+        if (minutesUntilCheckout <= 0) {
+            alert("Check-out time must be in the future.");
+            return;
+        }
 
         try {
             const response = await fetch("https://loneworking-production.up.railway.app/checkin/", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: user, site: site, minutes: Math.ceil((expires - now)/60000) })
+                body: JSON.stringify({ user_id: user, site: site, minutes: minutesUntilCheckout })
             });
 
             const confirmationDiv = document.getElementById("confirmation");
-            const data = await response.json();
+            if (!response.ok) {
+                const errorText = await response.text();
+                confirmationDiv.textContent = `Error: ${errorText}`;
+                confirmationDiv.style.display = "block";
+                confirmationDiv.style.backgroundColor = "#f8d7da";
+                confirmationDiv.style.color = "#721c24";
+                setTimeout(() => { confirmationDiv.style.display = "none"; }, 5000);
+                return;
+            }
 
+            const data = await response.json();
             confirmationDiv.textContent = data.message;
             confirmationDiv.style.display = "block";
             confirmationDiv.style.backgroundColor = "#d4edda";
@@ -174,8 +194,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Check-Out Button
     document.getElementById("checkout").onclick = async () => {
-        const user = document.getElementById("user").value;
-        const site = document.getElementById("site").value;
+        const user = document.getElementById("user").value.trim();
+        const site = document.getElementById("site").value.trim();
 
         try {
             const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
