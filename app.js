@@ -33,10 +33,21 @@ async function getUserLocation() {
     );
 }
 
+// ===== Escape HTML helper =====
+function escapeHtml(str) {
+    if (typeof str !== "string") return str;
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
+}
+
 // ===== Fetch and display active check-ins =====
 async function updateActiveCheckins() {
     try {
         const response = await fetch("https://loneworking-production.up.railway.app/checkins");
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
         const data = await response.json();
 
         const container = document.getElementById("activeCheckins");
@@ -75,8 +86,7 @@ async function updateActiveCheckins() {
         container.innerHTML = html;
 
         // Add click handlers to cancel buttons
-        const buttons = container.querySelectorAll(".cancel-btn");
-        buttons.forEach(btn => {
+        container.querySelectorAll(".cancel-btn").forEach(btn => {
             btn.onclick = async () => {
                 const user = decodeURIComponent(btn.getAttribute("data-user"));
                 const site = decodeURIComponent(btn.getAttribute("data-site"));
@@ -89,10 +99,10 @@ async function updateActiveCheckins() {
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ user_id: user, site: site })
                     });
-
-                    const confirmationDiv = document.getElementById("confirmation");
+                    if (!response.ok) throw new Error(`Server returned ${response.status}`);
                     const data = await response.json();
 
+                    const confirmationDiv = document.getElementById("confirmation");
                     confirmationDiv.textContent = data.message;
                     confirmationDiv.style.display = "block";
                     confirmationDiv.style.backgroundColor = "#cce5ff";
@@ -109,6 +119,8 @@ async function updateActiveCheckins() {
 
     } catch (error) {
         console.error("💥 Error fetching active check-ins:", error);
+        const container = document.getElementById("activeCheckins");
+        if (container) container.innerHTML = "<p>Error loading active check-ins.</p>";
     }
 }
 
@@ -116,6 +128,7 @@ async function updateActiveCheckins() {
 async function updateCheckinHistory() {
     try {
         const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
+        if (!response.ok) throw new Error(`Server returned ${response.status}`);
         const data = await response.json();
 
         const container = document.getElementById("checkinHistoryContent");
@@ -173,16 +186,6 @@ async function updateCheckinHistory() {
     }
 }
 
-// ===== Escape HTML helper =====
-function escapeHtml(str) {
-    if (typeof str !== "string") return str;
-    return str.replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#039;");
-}
-
 // ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", () => {
     // Make checkinTime input full width
@@ -197,12 +200,14 @@ document.addEventListener("DOMContentLoaded", () => {
         checkoutInput.style.marginBottom = "10px";
     }
 
-    // Check-In Button
+    // ===== Check-In Button =====
     document.getElementById("checkin").onclick = async () => {
         const user = document.getElementById("user").value.trim();
         const site = document.getElementById("site").value.trim();
-        const checkoutTimeInput = document.getElementById("checkinTime");
-        const checkoutTime = checkoutTimeInput.value;
+        let checkoutTime = document.getElementById("checkinTime").value.trim();
+
+        // Remove invisible/whitespace characters
+        checkoutTime = checkoutTime.replace(/\s|\u00A0|\u200B/g, '');
 
         if (!user || !site) {
             alert("Please enter both User ID and Site.");
@@ -210,11 +215,27 @@ document.addEventListener("DOMContentLoaded", () => {
         }
 
         if (!checkoutTime) {
-            alert("Please enter a valid check-out time.");
+            alert("Please enter a valid check-out time (HH:MM).");
             return;
         }
 
-        const [hours, minutes] = checkoutTime.split(":").map(Number);
+        const parts = checkoutTime.split(":");
+        if (parts.length !== 2) {
+            alert("Please enter a valid check-out time (HH:MM).");
+            return;
+        }
+
+        const hours = Number(parts[0]);
+        const minutes = Number(parts[1]);
+
+        if (
+            isNaN(hours) || isNaN(minutes) ||
+            hours < 0 || hours > 23 ||
+            minutes < 0 || minutes > 59
+        ) {
+            alert("Invalid time entered. Use HH:MM 24-hour format.");
+            return;
+        }
 
         const now = new Date();
         const expires = new Date(
@@ -223,7 +244,6 @@ document.addEventListener("DOMContentLoaded", () => {
         );
 
         const minutesUntilCheckout = Math.ceil((expires - now) / 60000);
-
         if (minutesUntilCheckout <= 0) {
             alert("Check-out time must be later than the current time.");
             return;
@@ -261,35 +281,7 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     };
 
-    // Check-Out Button (general)
-    document.getElementById("checkout").onclick = async () => {
-        const user = document.getElementById("user").value.trim();
-        const site = document.getElementById("site").value.trim();
-
-        try {
-            const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ user_id: user, site: site })
-            });
-
-            const confirmationDiv = document.getElementById("confirmation");
-            const data = await response.json();
-
-            confirmationDiv.textContent = data.message;
-            confirmationDiv.style.display = "block";
-            confirmationDiv.style.backgroundColor = "#cce5ff";
-            confirmationDiv.style.color = "#004085";
-
-            updateActiveCheckins();
-            updateCheckinHistory();
-            setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
-        } catch (error) {
-            console.error(error);
-        }
-    };
-
-    // Collapsible History Toggle
+    // ===== Collapsible History Toggle =====
     const historyHeader = document.getElementById("toggleHistory");
     const historyContent = document.getElementById("checkinHistoryContent");
     if (historyHeader && historyContent) {
@@ -300,10 +292,10 @@ document.addEventListener("DOMContentLoaded", () => {
         };
     }
 
-    // Location button
+    // ===== Location button =====
     document.getElementById("getLocation").onclick = getUserLocation;
 
-    // Auto-refresh
+    // ===== Auto-refresh every 30s =====
     updateActiveCheckins();
     updateCheckinHistory();
     setInterval(() => {
