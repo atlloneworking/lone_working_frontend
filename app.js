@@ -45,34 +45,19 @@ async function updateActiveCheckins() {
             return;
         }
 
-        let html = "<h2>Active Check-Ins</h2><ul style='padding-left:0; list-style:none;'>";
+        let html = "<h2>Active Check-Ins</h2><ul>";
         data.forEach(c => {
             html += `
-                <li style="margin-bottom:8px; display:flex; align-items:center; justify-content: space-between; flex-wrap:wrap;">
-                    <span style="flex:1; min-width: 120px;">
-                        ${escapeHtml(c.user)} at ${escapeHtml(c.site)} 
-                        <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span>
-                    </span>
-                    <button class="cancel-btn" 
-                        data-user="${encodeURIComponent(c.user)}" 
-                        data-site="${encodeURIComponent(c.site)}" 
-                        style="
-                            margin-left:10px;
-                            padding:8px 12px; 
-                            font-size:16px; 
-                            background-color:#e74c3c; 
-                            color:white; 
-                            border:none; 
-                            border-radius:6px;
-                            cursor:pointer;
-                        "
-                    >Cancel</button>
+                <li>
+                    ${escapeHtml(c.user)} at ${escapeHtml(c.site)} 
+                    <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span>
+                    <button class="cancel-btn" data-user="${encodeURIComponent(c.user)}" data-site="${encodeURIComponent(c.site)}" style="margin-left:10px; padding:2px 6px; font-size:14px; background-color:#e74c3c; color:white; border:none; border-radius:4px;">Cancel</button>
                 </li>`;
         });
         html += "</ul>";
         container.innerHTML = html;
 
-        // Add click handlers to cancel buttons
+        // Add click handlers to all cancel buttons
         const buttons = container.querySelectorAll(".cancel-btn");
         buttons.forEach(btn => {
             btn.onclick = async () => {
@@ -110,7 +95,7 @@ async function updateActiveCheckins() {
     }
 }
 
-// ===== Fetch and display check-in history =====
+// ===== Fetch and display check-in history (grouped by session) =====
 async function updateCheckinHistory() {
     try {
         const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
@@ -183,17 +168,6 @@ function escapeHtml(str) {
 
 // ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", () => {
-    // Make checkinTime input full width like other inputs
-    const checkoutInput = document.getElementById("checkinTime");
-    if (checkoutInput) {
-        checkoutInput.style.width = "100%";
-        checkoutInput.style.boxSizing = "border-box";
-        checkoutInput.style.padding = "10px";
-        checkoutInput.style.fontSize = "16px";
-        checkoutInput.style.border = "1px solid #ccc";
-        checkoutInput.style.borderRadius = "6px";
-    }
-
     // Check-In Button
     document.getElementById("checkin").onclick = async () => {
         const user = document.getElementById("user").value.trim();
