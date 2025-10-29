@@ -57,7 +57,7 @@ async function updateActiveCheckins() {
   }
 }
 
-// ===== Fetch and display check-in history (writes only to content div) =====
+// ===== Fetch and display check-in history (grouped by session) =====
 async function updateCheckinHistory() {
   try {
     const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
@@ -71,22 +71,20 @@ async function updateCheckinHistory() {
       return;
     }
 
-    // ✅ Sort newest sessions first (most recent at top)
-    data.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
+    // Sort by end time (canceled_at / expired_at) descending for display
+    data.sort((a, b) => {
+      const aEnd = a.canceled_at || a.expired_at || a.checked_in_at;
+      const bEnd = b.canceled_at || b.expired_at || b.checked_in_at;
+      return new Date(bEnd) - new Date(aEnd);
+    });
 
-    let html = `
-      <div style="display:flex; flex-direction:column; gap:10px;">
-    `;
+    let html = `<div style="display:flex; flex-direction:column; gap:12px;">`;
 
     data.forEach(c => {
       const checkInTime = new Date(c.checked_in_at).toLocaleString();
-      const checkOutTime = c.canceled_at
-        ? new Date(c.canceled_at).toLocaleString()
-        : c.expired_at
-        ? new Date(c.expired_at).toLocaleString()
-        : null;
+      const checkOutTime = c.canceled_at ? new Date(c.canceled_at).toLocaleString() :
+                           c.expired_at ? new Date(c.expired_at).toLocaleString() : null;
 
-      // Build record block with card-like styling
       html += `
         <div style="
           border: 1px solid #ddd;
@@ -100,25 +98,17 @@ async function updateCheckinHistory() {
           </div>
       `;
 
-      // 🟧 Show Check Out / Expired first
+      // Show Check Out / Expired on top
       if (checkOutTime) {
         const isCheckout = !!c.canceled_at;
         const cssColor = isCheckout ? "#e67e22" : "#e74c3c";
         const action = isCheckout ? "🚪 Check Out" : "⚠️ Expired";
-        html += `
-          <div style="color:${cssColor}; margin-bottom:3px;">
-            ${checkOutTime} — <strong>${action}</strong>
-          </div>
-        `;
+        html += `<div style="color:${cssColor}; margin-bottom:3px;">${checkOutTime} — <strong>${action}</strong></div>`;
       }
 
-      // 🟩 Then show Check In below
-      html += `
-          <div style="color:#2ecc71;">
-            ${checkInTime} — <strong>✅ Check In</strong>
-          </div>
-        </div>
-      `;
+      // Show Check In below
+      html += `<div style="color:#2ecc71;">${checkInTime} — <strong>✅ Check In</strong></div>`;
+      html += `</div>`; // end card
     });
 
     html += "</div>";
@@ -131,54 +121,34 @@ async function updateCheckinHistory() {
   }
 }
 
-
 // ===== Escape HTML helper =====
 function escapeHtml(str) {
   if (typeof str !== "string") return str;
-  return str
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+  return str.replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/"/g, "&quot;")
+            .replace(/'/g, "&#039;");
 }
 
 // ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", () => {
-  // ----- Check-In Button -----
+  // Check-In Button
   document.getElementById("checkin").onclick = async () => {
     const user = document.getElementById("user").value;
     const site = document.getElementById("site").value;
     const minutes = document.getElementById("minutes").value;
 
-    console.log("🚀 Starting check-in...");
-    console.log("User input:", { user, site, minutes });
-
     try {
       const response = await fetch("https://loneworking-production.up.railway.app/checkin/", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          user_id: user,
-          site: site,
-          minutes: parseInt(minutes)
-        })
+        body: JSON.stringify({ user_id: user, site: site, minutes: parseInt(minutes) })
       });
 
       const confirmationDiv = document.getElementById("confirmation");
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Server returned ${response.status}:`, errorText);
-        confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
-        confirmationDiv.style.display = "block";
-        confirmationDiv.style.backgroundColor = "#f8d7da";
-        confirmationDiv.style.color = "#721c24";
-        setTimeout(() => { confirmationDiv.style.display = "none"; }, 5000);
-        return;
-      }
-
       const data = await response.json();
+
       confirmationDiv.textContent = data.message;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.backgroundColor = "#d4edda";
@@ -186,25 +156,16 @@ document.addEventListener("DOMContentLoaded", () => {
 
       updateActiveCheckins();
       updateCheckinHistory();
-
       setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
     } catch (error) {
-      console.error("💥 Network or fetch error:", error);
-      const confirmationDiv = document.getElementById("confirmation");
-      confirmationDiv.textContent = "Network error — check console for details.";
-      confirmationDiv.style.display = "block";
-      confirmationDiv.style.backgroundColor = "#f8d7da";
-      confirmationDiv.style.color = "#721c24";
+      console.error(error);
     }
   };
 
-  // ----- Checkout Button -----
+  // Check-Out Button
   document.getElementById("checkout").onclick = async () => {
     const user = document.getElementById("user").value;
     const site = document.getElementById("site").value;
-
-    console.log("🚪 Attempting to check out...");
-    console.log("User input:", { user, site });
 
     try {
       const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
@@ -214,19 +175,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
 
       const confirmationDiv = document.getElementById("confirmation");
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error(`❌ Server returned ${response.status}:`, errorText);
-        confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
-        confirmationDiv.style.display = "block";
-        confirmationDiv.style.backgroundColor = "#f8d7da";
-        confirmationDiv.style.color = "#721c24";
-        setTimeout(() => { confirmationDiv.style.display = "none"; }, 5000);
-        return;
-      }
-
       const data = await response.json();
+
       confirmationDiv.textContent = data.message;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.backgroundColor = "#cce5ff";
@@ -234,19 +184,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
       updateActiveCheckins();
       updateCheckinHistory();
-
       setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
     } catch (error) {
-      console.error("💥 Network or fetch error:", error);
-      const confirmationDiv = document.getElementById("confirmation");
-      confirmationDiv.textContent = "Network error — check console for details.";
-      confirmationDiv.style.display = "block";
-      confirmationDiv.style.backgroundColor = "#f8d7da";
-      confirmationDiv.style.color = "#721c24";
+      console.error(error);
     }
   };
 
-  // ----- Collapsible History Toggle -----
+  // Collapsible History Toggle
   const historyHeader = document.getElementById("toggleHistory");
   const historyContent = document.getElementById("checkinHistoryContent");
   if (historyHeader && historyContent) {
@@ -257,7 +201,7 @@ document.addEventListener("DOMContentLoaded", () => {
     };
   }
 
-  // ----- Get My Location Button -----
+  // Location button
   document.getElementById("getLocation").onclick = getUserLocation;
 
   // Auto-refresh
