@@ -33,16 +33,6 @@ async function getUserLocation() {
     );
 }
 
-// ===== Escape HTML helper =====
-function escapeHtml(str) {
-    if (typeof str !== "string") return str;
-    return str.replace(/&/g, "&amp;")
-              .replace(/</g, "&lt;")
-              .replace(/>/g, "&gt;")
-              .replace(/"/g, "&quot;")
-              .replace(/'/g, "&#039;");
-}
-
 // ===== Fetch and display active check-ins =====
 async function updateActiveCheckins() {
     try {
@@ -50,15 +40,13 @@ async function updateActiveCheckins() {
         const data = await response.json();
 
         const container = document.getElementById("activeCheckins");
-        if (!data || data.length === 0) {
+        if (data.length === 0) {
             container.innerHTML = "<h2>Active Check-Ins</h2><p>No active check-ins.</p>";
             return;
         }
 
         let html = "<h2>Active Check-Ins</h2><ul style='padding-left:0; list-style:none;'>";
-
-        // Show only the latest 10 check-ins to save bandwidth
-        data.slice(0, 10).forEach(c => {
+        data.forEach(c => {
             html += `
                 <li style="margin-bottom:8px; display:flex; flex-wrap:wrap; align-items:center; justify-content: space-between;">
                     <div style="flex:1 1 auto; min-width:150px; margin-right:10px;">
@@ -111,7 +99,7 @@ async function updateActiveCheckins() {
                     confirmationDiv.style.color = "#004085";
 
                     updateActiveCheckins();
-                    updateCheckinHistory(); // only update history after actions
+                    updateCheckinHistory();
                     setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
                 } catch (error) {
                     console.error(error);
@@ -138,7 +126,6 @@ async function updateCheckinHistory() {
             return;
         }
 
-        // Sort by end time descending
         data.sort((a, b) => {
             const aEnd = a.canceled_at || a.expired_at || a.checked_in_at;
             const bEnd = b.canceled_at || b.expired_at || b.checked_in_at;
@@ -162,7 +149,8 @@ async function updateCheckinHistory() {
                 ">
                     <div style="font-weight:bold; margin-bottom:4px;">
                         ${escapeHtml(c.user)} — <span style="color:#555;">${escapeHtml(c.site)}</span>
-                    </div>`;
+                    </div>
+            `;
 
             if (checkOutTime) {
                 const isCheckout = !!c.canceled_at;
@@ -183,6 +171,16 @@ async function updateCheckinHistory() {
         const container = document.getElementById("checkinHistoryContent");
         if (container) container.innerHTML = "<p>Error loading history.</p>";
     }
+}
+
+// ===== Escape HTML helper =====
+function escapeHtml(str) {
+    if (typeof str !== "string") return str;
+    return str.replace(/&/g, "&amp;")
+              .replace(/</g, "&lt;")
+              .replace(/>/g, "&gt;")
+              .replace(/"/g, "&quot;")
+              .replace(/'/g, "&#039;");
 }
 
 // ===== Main Event Handlers =====
@@ -256,7 +254,35 @@ document.addEventListener("DOMContentLoaded", () => {
             confirmationDiv.style.color = "#155724";
 
             updateActiveCheckins();
-            updateCheckinHistory(); // update history only after action
+            updateCheckinHistory();
+            setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    // Check-Out Button (general)
+    document.getElementById("checkout").onclick = async () => {
+        const user = document.getElementById("user").value.trim();
+        const site = document.getElementById("site").value.trim();
+
+        try {
+            const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ user_id: user, site: site })
+            });
+
+            const confirmationDiv = document.getElementById("confirmation");
+            const data = await response.json();
+
+            confirmationDiv.textContent = data.message;
+            confirmationDiv.style.display = "block";
+            confirmationDiv.style.backgroundColor = "#cce5ff";
+            confirmationDiv.style.color = "#004085";
+
+            updateActiveCheckins();
+            updateCheckinHistory();
             setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
         } catch (error) {
             console.error(error);
@@ -277,9 +303,13 @@ document.addEventListener("DOMContentLoaded", () => {
     // Location button
     document.getElementById("getLocation").onclick = getUserLocation;
 
-    // Auto-refresh only active check-ins every 60s
+    // Auto-refresh
     updateActiveCheckins();
-    updateCheckinHistory(); // initial load
+    updateCheckinHistory();
+    setInterval(() => {
+        updateActiveCheckins();
+        updateCheckinHistory();
+    }, 30000);
+
     getUserLocation();
-    setInterval(updateActiveCheckins, 60000);
 });
