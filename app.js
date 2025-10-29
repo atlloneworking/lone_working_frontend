@@ -63,39 +63,49 @@ async function updateCheckinHistory() {
     const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
     const data = await response.json();
 
-    const container = document.getElementById("checkinHistoryContent");
-    if (!container) return;
-
+    const container = document.getElementById("checkinHistory");
     if (data.length === 0) {
       container.innerHTML = "<p>No check-in history.</p>";
       return;
     }
 
-    // Build a cleaner, more compact list
-    let html = "<ul style='list-style:none; padding-left:0;'>";
+    // ✅ Sort newest sessions first
+    data.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
+
+    let html = "<h3>Check-In History:</h3><ul>";
+
     data.forEach(c => {
-      const isCheckout = !!c.canceled_at;
-      const statusIcon = isCheckout ? "🚪" : "✅";
-      const statusText = isCheckout ? "Check Out" : "Check In";
-      const color = isCheckout ? "#e67e22" : "#2ecc71";
-      const timestamp = new Date(c.checked_in_at).toLocaleString();
+      // Determine action type
+      let action = "Check In";
+      let cssClass = "checkin-completed";
+      if (c.canceled_at) {
+        action = "Check Out";
+        cssClass = "checkin-canceled";
+      } else if (c.expired_at) {
+        action = "Expired";
+        cssClass = "checkin-expired";
+      }
+
+      // Use the check-in time for ordering
+      const time = new Date(c.checked_in_at).toLocaleString();
 
       html += `
-        <li style="margin-bottom:8px; border-bottom:1px solid #eee; padding:4px 0;">
-          <span style="font-weight:600;">👤 ${c.user}</span> |
-          <span style="color:#555;">📍 ${c.site}</span> |
-          <span style="color:#888;">🕓 ${timestamp}</span> |
-          <span style="color:${color}; font-weight:600;">${statusIcon} ${statusText}</span>
-        </li>`;
+        <li>
+          <strong>${c.user}</strong> — ${c.site}<br>
+          <span>${time}</span> — 
+          <span class="${cssClass}">${action}</span>
+        </li>
+      `;
     });
-    html += "</ul>";
 
+    html += "</ul>";
     container.innerHTML = html;
 
   } catch (error) {
     console.error("💥 Error fetching check-in history:", error);
   }
 }
+
 
 document.addEventListener("DOMContentLoaded", () => {
   // ----- Check-In Button -----
