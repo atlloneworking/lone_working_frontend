@@ -1,4 +1,4 @@
-// ----- Get and autofill user location -----
+// ===== Get and autofill user location =====
 async function getUserLocation() {
   const siteInput = document.getElementById("site");
 
@@ -33,7 +33,7 @@ async function getUserLocation() {
   );
 }
 
-// ----- Fetch and display active check-ins -----
+// ===== Fetch and display active check-ins =====
 async function updateActiveCheckins() {
   try {
     const response = await fetch("https://loneworking-production.up.railway.app/checkins");
@@ -47,7 +47,7 @@ async function updateActiveCheckins() {
 
     let html = "<h2>Active Check-Ins</h2><ul>";
     data.forEach(c => {
-      html += `<li>${c.user} at ${c.site} <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span></li>`;
+      html += `<li>${escapeHtml(c.user)} at ${escapeHtml(c.site)} <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span></li>`;
     });
     html += "</ul>";
     container.innerHTML = html;
@@ -57,56 +57,74 @@ async function updateActiveCheckins() {
   }
 }
 
-// ----- Fetch and display check-in history -----
+// ===== Fetch and display check-in history (writes only to content div) =====
 async function updateCheckinHistory() {
   try {
     const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
     const data = await response.json();
 
-    const container = document.getElementById("checkinHistory");
-    if (data.length === 0) {
+    const container = document.getElementById("checkinHistoryContent");
+    if (!container) return;
+
+    if (!data || data.length === 0) {
       container.innerHTML = "<p>No check-in history.</p>";
       return;
     }
 
-    // ✅ Sort newest sessions first
+    // Sort newest first
     data.sort((a, b) => new Date(b.checked_in_at) - new Date(a.checked_in_at));
 
-    let html = "<h3>Check-In History:</h3><ul>";
-
+    let html = "<ul style='list-style:none; padding-left:0; margin:0;'>";
     data.forEach(c => {
-      // Determine action type
-      let action = "Check In";
-      let cssClass = "checkin-completed";
-      if (c.canceled_at) {
-        action = "Check Out";
-        cssClass = "checkin-canceled";
-      } else if (c.expired_at) {
-        action = "Expired";
-        cssClass = "checkin-expired";
+      const isCheckout = !!c.canceled_at;
+      const isExpired = !!c.expired_at;
+      let statusIcon = "✅";
+      let statusText = "Check In";
+      let color = "#2ecc71";
+
+      if (isCheckout) {
+        statusIcon = "🚪";
+        statusText = "Check Out";
+        color = "#e67e22";
+      } else if (isExpired) {
+        statusIcon = "⚠️";
+        statusText = "Expired";
+        color = "#e74c3c";
       }
 
-      // Use the check-in time for ordering
-      const time = new Date(c.checked_in_at).toLocaleString();
+      const timestamp = new Date(c.checked_in_at).toLocaleString();
 
       html += `
-        <li>
-          <strong>${c.user}</strong> — ${c.site}<br>
-          <span>${time}</span> — 
-          <span class="${cssClass}">${action}</span>
-        </li>
-      `;
+        <li style="margin-bottom:8px; border-bottom:1px solid #eee; padding:6px 0;">
+          <strong>${escapeHtml(c.user)}</strong> |
+          <span style="color:#555;">${escapeHtml(c.site)}</span> |
+          <span style="color:#888;">${timestamp}</span> |
+          <span style="color:${color}; font-weight:600;">${statusIcon} ${statusText}</span>
+        </li>`;
     });
-
     html += "</ul>";
+
     container.innerHTML = html;
 
   } catch (error) {
     console.error("💥 Error fetching check-in history:", error);
+    const container = document.getElementById("checkinHistoryContent");
+    if (container) container.innerHTML = "<p>Error loading history.</p>";
   }
 }
 
+// ===== Escape HTML helper =====
+function escapeHtml(str) {
+  if (typeof str !== "string") return str;
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
+}
 
+// ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", () => {
   // ----- Check-In Button -----
   document.getElementById("checkin").onclick = async () => {
@@ -166,7 +184,7 @@ document.addEventListener("DOMContentLoaded", () => {
     const user = document.getElementById("user").value;
     const site = document.getElementById("site").value;
 
-    console.log("🚀 Attempting to check out...");
+    console.log("🚪 Attempting to check out...");
     console.log("User input:", { user, site });
 
     try {
