@@ -9,14 +9,35 @@
     body {
       font-family: Arial, sans-serif;
       margin: 20px;
+      background: #f9f9f9;
+      color: #333;
+    }
+    h1, h2, h3 {
+      color: #2c3e50;
+    }
+    input, button {
+      margin: 5px;
+      padding: 8px 10px;
+      font-size: 16px;
+      border: 1px solid #ccc;
+      border-radius: 5px;
     }
     input {
-      margin: 5px;
-      padding: 5px;
+      width: calc(100% - 24px);
+      max-width: 300px;
     }
     button {
-      margin: 5px;
-      padding: 5px 10px;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    button:hover {
+      background-color: #eee;
+    }
+    #confirmation {
+      margin-top: 10px;
+      padding: 10px;
+      border-radius: 5px;
+      font-weight: bold;
     }
     .checkin-completed {
       color: green;
@@ -27,27 +48,46 @@
     .checkin-expired {
       color: red;
     }
+    #activeCheckins, #checkinHistory {
+      margin-top: 20px;
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    }
+    ul {
+      padding-left: 20px;
+    }
   </style>
 </head>
 <body>
   <h1>Lone Worker Check-In</h1>
 
+  <!-- User inputs -->
   <input id="user" placeholder="User ID">
   <input id="site" placeholder="Site Name">
+  <button id="getLocation">📍 Get My Location</button>
+  <br>
   <input id="minutes" type="number" placeholder="Minutes">
 
-  <button id="checkin">Check In</button>
-  <button id="cancel">Cancel Check-In</button>
+  <!-- Action buttons -->
+  <button id="checkin">✅ Check In</button>
+  <button id="cancel">❌ Cancel Check-In</button>
 
-  <!-- Confirmation messages -->
-  <div id="confirmation" style="margin-top: 10px; display: none;"></div>
+  <!-- Confirmation message -->
+  <div id="confirmation" style="display: none;"></div>
 
-  <!-- Active check-ins -->
-  <div id="activeCheckins" style="margin-top: 20px;"></div>
+  <!-- Active check-ins section -->
+  <div id="activeCheckins">
+    <h2>Active Check-Ins</h2>
+    <p>Loading...</p>
+  </div>
 
-  <!-- Check-in history -->
-  <h2>Check-In History</h2>
-  <div id="checkinHistory" style="margin-top: 10px;"></div>
+  <!-- Check-in history section -->
+  <div id="checkinHistory">
+    <h2>Check-In History</h2>
+    <p>Loading...</p>
+  </div>
 
   <script src="app.js"></script>
 </body>

@@ -1,3 +1,40 @@
+// ----- Get and autofill user location -----
+async function getUserLocation() {
+  const siteInput = document.getElementById("site");
+
+  if (!navigator.geolocation) {
+    siteInput.placeholder = "Geolocation not supported";
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(
+    async (position) => {
+      const { latitude, longitude } = position.coords;
+      console.log("📍 User location:", latitude, longitude);
+
+      // Default: fill coordinates
+      siteInput.value = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
+
+      // Try reverse geocoding for human-readable location
+      try {
+        const res = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+        );
+        const data = await res.json();
+        if (data && data.display_name) {
+          siteInput.value = data.display_name;
+        }
+      } catch (err) {
+        console.warn("⚠️ Reverse geocoding failed:", err);
+      }
+    },
+    (error) => {
+      console.error("❌ Location error:", error);
+      siteInput.placeholder = "Location permission denied";
+    }
+  );
+}
+
 // ----- Function to fetch and display active check-ins -----
 async function updateActiveCheckins() {
   try {
@@ -88,8 +125,8 @@ document.getElementById("checkin").onclick = async () => {
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "green";
 
-    updateActiveCheckins();   // Update active check-ins
-    updateCheckinHistory();   // Update history
+    updateActiveCheckins();
+    updateCheckinHistory();
 
     setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
 
@@ -137,8 +174,8 @@ document.getElementById("cancel").onclick = async () => {
     confirmationDiv.style.display = "block";
     confirmationDiv.style.color = "blue";
 
-    updateActiveCheckins();   // Update active check-ins
-    updateCheckinHistory();   // Update history
+    updateActiveCheckins();
+    updateCheckinHistory();
 
     setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
 
@@ -152,9 +189,15 @@ document.getElementById("cancel").onclick = async () => {
 };
 
 // ----- Auto-refresh every 30 seconds -----
-updateActiveCheckins();   // initial load
-updateCheckinHistory();   // initial load
+updateActiveCheckins();
+updateCheckinHistory();
 setInterval(() => {
   updateActiveCheckins();
   updateCheckinHistory();
 }, 30000);
+
+// ----- Get location on page load -----
+getUserLocation();
+
+// ----- Bind "Get My Location" button -----
+document.getElementById("getLocation").onclick = getUserLocation;
