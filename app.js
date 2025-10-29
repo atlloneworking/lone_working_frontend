@@ -12,10 +12,8 @@ async function getUserLocation() {
       const { latitude, longitude } = position.coords;
       console.log("📍 User location:", latitude, longitude);
 
-      // Default: fill coordinates
       siteInput.value = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
 
-      // Try reverse geocoding for human-readable location
       try {
         const res = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
@@ -35,7 +33,7 @@ async function getUserLocation() {
   );
 }
 
-// ----- Function to fetch and display active check-ins -----
+// ----- Fetch and display active check-ins -----
 async function updateActiveCheckins() {
   try {
     const response = await fetch("https://loneworking-production.up.railway.app/checkins");
@@ -49,7 +47,7 @@ async function updateActiveCheckins() {
 
     let html = "<h2>Active Check-Ins</h2><ul>";
     data.forEach(c => {
-      html += `<li>${c.user} at ${c.site} (expires at ${new Date(c.expires).toLocaleTimeString()})</li>`;
+      html += `<li>${c.user} at ${c.site} <span style="color:#888;">(expires ${new Date(c.expires).toLocaleTimeString()})</span></li>`;
     });
     html += "</ul>";
     container.innerHTML = html;
@@ -59,25 +57,39 @@ async function updateActiveCheckins() {
   }
 }
 
-// ----- Function to fetch and display check-in history -----
+// ----- Fetch and display check-in history -----
 async function updateCheckinHistory() {
   try {
     const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
     const data = await response.json();
 
-    const container = document.getElementById("checkinHistory");
+    const container = document.getElementById("checkinHistoryContent");
+    if (!container) return;
+
     if (data.length === 0) {
-      container.innerHTML = "<h2>Check-In History</h2><p>No check-in history.</p>";
+      container.innerHTML = "<p>No check-in history.</p>";
       return;
     }
 
-    let html = "<h2>Check-In History</h2><ul>";
+    // Build a cleaner, more compact list
+    let html = "<ul style='list-style:none; padding-left:0;'>";
     data.forEach(c => {
-      const status = c.canceled_at ? "Canceled" : c.expired_at ? "Expired" : "Completed";
+      const isCheckout = !!c.canceled_at;
+      const statusIcon = isCheckout ? "🚪" : "✅";
+      const statusText = isCheckout ? "Check Out" : "Check In";
+      const color = isCheckout ? "#e67e22" : "#2ecc71";
       const timestamp = new Date(c.checked_in_at).toLocaleString();
-      html += `<li>${c.user} at ${c.site} - ${status} (Checked in: ${timestamp})</li>`;
+
+      html += `
+        <li style="margin-bottom:8px; border-bottom:1px solid #eee; padding:4px 0;">
+          <span style="font-weight:600;">👤 ${c.user}</span> |
+          <span style="color:#555;">📍 ${c.site}</span> |
+          <span style="color:#888;">🕓 ${timestamp}</span> |
+          <span style="color:${color}; font-weight:600;">${statusIcon} ${statusText}</span>
+        </li>`;
     });
     html += "</ul>";
+
     container.innerHTML = html;
 
   } catch (error) {
@@ -85,7 +97,6 @@ async function updateCheckinHistory() {
   }
 }
 
-// Wait for DOM to load before binding buttons
 document.addEventListener("DOMContentLoaded", () => {
   // ----- Check-In Button -----
   document.getElementById("checkin").onclick = async () => {
@@ -107,11 +118,11 @@ document.addEventListener("DOMContentLoaded", () => {
         })
       });
 
+      const confirmationDiv = document.getElementById("confirmation");
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ Server returned ${response.status}:`, errorText);
-
-        const confirmationDiv = document.getElementById("confirmation");
         confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
         confirmationDiv.style.display = "block";
         confirmationDiv.style.backgroundColor = "#f8d7da";
@@ -121,9 +132,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await response.json();
-      console.log("✅ Response data:", data);
-
-      const confirmationDiv = document.getElementById("confirmation");
       confirmationDiv.textContent = data.message;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.backgroundColor = "#d4edda";
@@ -133,7 +141,6 @@ document.addEventListener("DOMContentLoaded", () => {
       updateCheckinHistory();
 
       setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
-
     } catch (error) {
       console.error("💥 Network or fetch error:", error);
       const confirmationDiv = document.getElementById("confirmation");
@@ -159,11 +166,11 @@ document.addEventListener("DOMContentLoaded", () => {
         body: JSON.stringify({ user_id: user, site: site })
       });
 
+      const confirmationDiv = document.getElementById("confirmation");
+
       if (!response.ok) {
         const errorText = await response.text();
         console.error(`❌ Server returned ${response.status}:`, errorText);
-
-        const confirmationDiv = document.getElementById("confirmation");
         confirmationDiv.textContent = `Error ${response.status}: ${errorText}`;
         confirmationDiv.style.display = "block";
         confirmationDiv.style.backgroundColor = "#f8d7da";
@@ -173,9 +180,6 @@ document.addEventListener("DOMContentLoaded", () => {
       }
 
       const data = await response.json();
-      console.log("✅ Checkout response data:", data);
-
-      const confirmationDiv = document.getElementById("confirmation");
       confirmationDiv.textContent = data.message;
       confirmationDiv.style.display = "block";
       confirmationDiv.style.backgroundColor = "#cce5ff";
@@ -185,7 +189,6 @@ document.addEventListener("DOMContentLoaded", () => {
       updateCheckinHistory();
 
       setTimeout(() => { confirmationDiv.style.display = "none"; }, 3000);
-
     } catch (error) {
       console.error("💥 Network or fetch error:", error);
       const confirmationDiv = document.getElementById("confirmation");
@@ -196,10 +199,21 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   };
 
+  // ----- Collapsible History Toggle -----
+  const historyHeader = document.getElementById("toggleHistory");
+  const historyContent = document.getElementById("checkinHistoryContent");
+  if (historyHeader && historyContent) {
+    historyHeader.onclick = () => {
+      const isHidden = historyContent.style.display === "none";
+      historyContent.style.display = isHidden ? "block" : "none";
+      historyHeader.textContent = isHidden ? "▼ Check-In History" : "▶ Check-In History";
+    };
+  }
+
   // ----- Get My Location Button -----
   document.getElementById("getLocation").onclick = getUserLocation;
 
-  // ----- Auto-refresh every 30 seconds -----
+  // Auto-refresh
   updateActiveCheckins();
   updateCheckinHistory();
   setInterval(() => {
@@ -207,6 +221,5 @@ document.addEventListener("DOMContentLoaded", () => {
     updateCheckinHistory();
   }, 30000);
 
-  // ----- Get location automatically on page load -----
   getUserLocation();
 });
