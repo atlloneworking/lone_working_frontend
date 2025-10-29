@@ -71,7 +71,7 @@ async function updateCheckinHistory() {
             return;
         }
 
-        // Sort by end time (canceled_at / expired_at) descending for display
+        // Sort by end time (canceled_at / expired_at) descending
         data.sort((a, b) => {
             const aEnd = a.canceled_at || a.expired_at || a.checked_in_at;
             const bEnd = b.canceled_at || b.expired_at || b.checked_in_at;
@@ -145,18 +145,23 @@ document.addEventListener("DOMContentLoaded", () => {
             return;
         }
 
-        if (!checkoutTime || !/^\d{2}:\d{2}$/.test(checkoutTime)) {
-            alert("Please enter a valid check-out time in HH:MM format.");
+        if (!checkoutTime) {
+            alert("Please enter a valid check-out time (HH:MM).");
             return;
         }
 
         const now = new Date();
         const [hours, minutes] = checkoutTime.split(":").map(Number);
-        const expires = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes);
+        if (hours < 0 || hours > 23 || minutes < 0 || minutes > 59) {
+            alert("Invalid time entered. Use HH:MM 24-hour format.");
+            return;
+        }
+
+        const expires = new Date(now.getFullYear(), now.getMonth(), now.getDate(), hours, minutes, 0, 0);
         const minutesUntilCheckout = Math.ceil((expires - now) / 60000);
 
         if (minutesUntilCheckout <= 0) {
-            alert("Check-out time must be in the future.");
+            alert("Check-out time must be later than the current time.");
             return;
         }
 
