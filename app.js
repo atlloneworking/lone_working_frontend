@@ -118,21 +118,6 @@ async function updateCheckinHistory(){
     }catch(e){ console.error("Error fetching history:", e); container.innerHTML="<p>Error loading history.</p>"; }
 }
 
-// ===== Modal Functions =====
-function openNewContactModal() {
-    const modal = document.getElementById("newContactModal");
-    modal.classList.remove("hide");
-    modal.style.display = "flex";
-    document.getElementById("newContactName").value = "";
-    document.getElementById("newContactPhone").value = "";
-}
-
-function closeNewContactModal() {
-    const modal = document.getElementById("newContactModal");
-    modal.classList.add("hide");
-    setTimeout(()=>{ modal.style.display="none"; modal.classList.remove("hide"); }, 200);
-}
-
 // ===== Emergency Contacts =====
 async function loadContacts(selectedName=null, selectedPhone=null){
     const select = document.getElementById("emergencyContact");
@@ -159,28 +144,32 @@ async function loadContacts(selectedName=null, selectedPhone=null){
 
         select.onchange = function() {
             if(this.value==="__new__"){
-                openNewContactModal();
+                document.getElementById("newContactModal").style.display = "flex";
+                document.getElementById("newContactName").value="";
+                document.getElementById("newContactPhone").value="";
+                document.getElementById("newContactNotes").value="";
             }
         };
 
-        document.getElementById("cancelNewContact").onclick = closeNewContactModal;
+        document.getElementById("cancelNewContact").onclick = ()=>{
+            document.getElementById("newContactModal").style.display="none";
+        };
 
-        document.getElementById("saveNewContact").onclick = async () => {
+        document.getElementById("saveNewContact").onclick = async ()=>{
             const name = document.getElementById("newContactName").value.trim();
             const phone = document.getElementById("newContactPhone").value.trim();
-            if(!name){ alert("Name is required."); return; }
-            if(!phone){ alert("Phone is required."); return; }
+            const notes = document.getElementById("newContactNotes").value.trim();
+            if(!name || !phone){ alert("Name and Phone are required."); return; }
 
             try{
-                const response = await fetch("https://loneworking-production.up.railway.app/add_contact", {
+                const res = await fetch("https://loneworking-production.up.railway.app/add_contact", {
                     method:"POST",
                     headers:{"Content-Type":"application/json"},
-                    body: JSON.stringify({name, phone})
+                    body: JSON.stringify({name, phone, notes})
                 });
-                if(!response.ok) throw new Error("Failed to add contact");
-
+                if(!res.ok) throw new Error("Failed to add contact");
                 await loadContacts(name, phone);
-                closeNewContactModal();
+                document.getElementById("newContactModal").style.display="none";
                 alert(`✅ Contact "${name}" added!`);
             }catch(e){ console.error(e); alert("Failed to add contact."); }
         };

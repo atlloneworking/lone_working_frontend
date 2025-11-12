@@ -3,15 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lone Worker</title>
+  <title>Lone Worker Check-In</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    /* ===== Base Styles ===== */
     body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin:0; padding:0; background:#f4f6f8; color:#333; display:flex; flex-direction:column; align-items:center; min-height:100vh; box-sizing:border-box; }
     h1,h2,h3{color:#2c3e50;}
     main { width:100%; max-width:600px; background:#fff; padding:20px; margin:30px 10px 0 10px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); box-sizing:border-box; }
     .form-group{display:flex; flex-direction:column; gap:10px; margin-bottom:15px;}
-    input, button, select { padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
+    input, button, select, textarea { padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
     button{cursor:pointer; border:none; transition: background 0.2s, transform 0.1s;}
     button:hover { transform: scale(1.02); }
     #checkin { background-color:#2ecc71; color:white; }
@@ -19,24 +18,14 @@
     #confirmation{margin-top:15px; padding:10px; border-radius:6px; display:none; text-align:center; font-weight:bold;}
     #activeCheckins, #checkinHistory{margin-top:25px; background:#fdfdfd; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.05);}
     ul { padding-left:0; list-style:none; line-height:1.6; }
-
-    /* ===== Modal Styles ===== */
-    #newContactModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.5); align-items:center; justify-content:center; animation:fadeIn 0.3s ease forwards; }
-    #newContactModal.hide { animation:fadeOut 0.2s ease forwards; }
-    #newContactModal .modal-content { background:#fff; padding:25px 20px; border-radius:12px; max-width:400px; width:90%; box-shadow:0 6px 20px rgba(0,0,0,0.15); transform:scale(0.8); opacity:0; animation:scaleIn 0.3s ease forwards; }
-    #newContactModal.hide .modal-content { animation:scaleOut 0.2s ease forwards; }
-    #newContactModal h3 { margin-top:0; margin-bottom:15px; text-align:center; }
-    #newContactModal input { margin-bottom:12px; width:100%; padding:10px; font-size:15px; border-radius:6px; border:1px solid #ccc; }
-    #newContactModal button { padding:8px 16px; font-size:15px; border-radius:6px; }
-    #newContactModal #saveNewContact { background:#2ecc71; color:white; border:none; margin-left:10px; }
-    #newContactModal #cancelNewContact { background:#e74c3c; color:white; border:none; }
-
-    @keyframes fadeIn { from {opacity:0;} to {opacity:1;} }
-    @keyframes fadeOut { from {opacity:1;} to {opacity:0;} }
-    @keyframes scaleIn { from {transform:scale(0.8); opacity:0;} to {transform:scale(1); opacity:1;} }
-    @keyframes scaleOut { from {transform:scale(1); opacity:1;} to {transform:scale(0.8); opacity:0;} }
-
-    @media(max-width:600px){main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;} h1{font-size:1.5em;text-align:center;} input, button, select{font-size:15px;} button{width:100%;}}
+    @media(max-width:600px){main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;} h1{font-size:1.5em;text-align:center;} input, button, select, textarea{font-size:15px;} button{width:100%;}}
+    
+    /* Modal styles */
+    #newContactModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:1000; }
+    #newContactModalContent { background:#fff; padding:20px; border-radius:10px; max-width:400px; width:90%; display:flex; flex-direction:column; gap:10px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
+    #newContactModalContent h3 { margin:0 0 10px 0; }
+    #newContactModalContent button { width:auto; padding:8px 12px; }
+    #newContactModalContent .button-row { display:flex; gap:10px; justify-content:flex-end; }
   </style>
 </head>
 <body>
@@ -48,8 +37,6 @@
       <input id="site" placeholder="Site Name">
       <button id="getLocation">📍 Get My Location</button>
       <input id="checkinTime" type="time" placeholder="Check-Out Time (HH:MM)">
-
-      <!-- Emergency Contact Dropdown -->
       <label for="emergencyContact">Emergency Contact:</label>
       <select id="emergencyContact">
         <option value="">Loading contacts...</option>
@@ -75,15 +62,16 @@
     </div>
   </main>
 
-  <!-- Modal for adding new contact -->
+  <!-- New Contact Modal -->
   <div id="newContactModal">
-    <div class="modal-content">
-      <h3>Add New Contact</h3>
-      <input id="newContactName" placeholder="Name">
-      <input id="newContactPhone" placeholder="Phone">
-      <div style="text-align:right;">
+    <div id="newContactModalContent">
+      <h3>Add New Emergency Contact</h3>
+      <input type="text" id="newContactName" placeholder="Name">
+      <input type="text" id="newContactPhone" placeholder="Phone">
+      <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
+      <div class="button-row">
         <button id="cancelNewContact">Cancel</button>
-        <button id="saveNewContact">Save</button>
+        <button id="saveNewContact">Save Contact</button>
       </div>
     </div>
   </div>
