@@ -3,47 +3,25 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Lone Worker</title>
+  <title>Lone Worker Check-In</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    /* ===== Base Styles ===== */
-    body {
-      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-      margin:0; padding:0;
-      background:#f4f6f8; color:#333;
-      display:flex; flex-direction:column; align-items:center;
-      min-height:100vh; box-sizing:border-box;
-    }
+    body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin:0; padding:0; background:#f4f6f8; color:#333; display:flex; flex-direction:column; align-items:center; min-height:100vh; box-sizing:border-box; }
     h1,h2,h3{color:#2c3e50;}
-    main {
-      width:100%; max-width:600px;
-      background:#fff; padding:20px;
-      margin:30px 10px 0 10px;
-      border-radius:12px;
-      box-shadow:0 4px 8px rgba(0,0,0,0.1);
-      box-sizing:border-box;
-    }
-    .form-group{
-      display:flex; flex-direction:column; gap:10px; margin-bottom:15px;
-    }
-    input, button, select, textarea {
-      padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box;
-    }
+    main { width:100%; max-width:600px; background:#fff; padding:20px; margin:30px 10px 0 10px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); box-sizing:border-box; }
+    .form-group{display:flex; flex-direction:column; gap:10px; margin-bottom:15px;}
+    input, button, select, textarea { padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
     button{cursor:pointer; border:none; transition: background 0.2s, transform 0.1s;}
     button:hover { transform: scale(1.02); }
     #checkin { background-color:#2ecc71; color:white; }
     #getLocation { background-color:#3498db; color:white; }
-    #showAddContact, #saveContact { background-color:#8e44ad; color:white; }
     #confirmation{margin-top:15px; padding:10px; border-radius:6px; display:none; text-align:center; font-weight:bold;}
     #activeCheckins, #checkinHistory{margin-top:25px; background:#fdfdfd; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.05);}
     ul { padding-left:0; list-style:none; line-height:1.6; }
-    #addContactContainer { display:none; gap:10px; margin-top:10px; }
-    @media(max-width:600px){
-      main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;}
-      h1{font-size:1.5em;text-align:center;}
-      input, button, select, textarea{font-size:15px;}
-      button{width:100%;}
-    }
+    @media(max-width:600px){main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;} h1{font-size:1.5em;text-align:center;} input, button, select, textarea{font-size:15px;} button{width:100%;}}
+    
+    #newContactForm { display:none; margin-top:10px; background:#fafafa; padding:15px; border-radius:8px; border:1px solid #ddd; box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+    #newContactForm .form-group { margin-bottom:10px; }
   </style>
 </head>
 <body>
@@ -55,20 +33,28 @@
       <input id="site" placeholder="Site Name">
       <button id="getLocation">📍 Get My Location</button>
       <input id="checkinTime" type="time" placeholder="Check-Out Time (HH:MM)">
-
-      <!-- Emergency Contact Dropdown -->
       <label for="emergencyContact">Emergency Contact:</label>
       <select id="emergencyContact">
         <option value="">Loading contacts...</option>
       </select>
-
-      <!-- Add new contact -->
-      <button id="showAddContact">➕ Add New Emergency Contact</button>
-      <div id="addContactContainer">
-        <input id="newContactName" placeholder="Contact Name">
-        <input id="newContactPhone" placeholder="Contact Phone">
-        <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
-        <button id="saveContact">💾 Save Contact</button>
+      <!-- Separate Add Contact Button -->
+      <button id="addContactBtn" style="background:#f39c12; color:white;">➕ Add New Emergency Contact</button>
+      
+      <!-- Hidden Form for Adding Contact -->
+      <div id="newContactForm">
+        <div class="form-group">
+          <input type="text" id="newContactName" placeholder="Name">
+        </div>
+        <div class="form-group">
+          <input type="text" id="newContactPhone" placeholder="Phone">
+        </div>
+        <div class="form-group">
+          <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
+        </div>
+        <div class="form-group">
+          <button id="saveNewContact" style="background:#27ae60; color:white;">Save Contact</button>
+          <button id="cancelNewContact" style="background:#e74c3c; color:white;">Cancel</button>
+        </div>
       </div>
     </div>
 
