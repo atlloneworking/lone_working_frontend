@@ -131,40 +131,8 @@ async function loadContacts(selectedName=null, selectedPhone=null){
     }
 }
 
-// ===== PIN Overlay =====
-function setupPin(correctPin="1234"){
-    const overlay = document.createElement("div");
-    overlay.id="pinOverlay";
-    overlay.style=`position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;`;
-    overlay.innerHTML=`
-        <h2>Enter PIN</h2>
-        <input type="password" id="pinInput" maxlength="4" placeholder="4-digit PIN" style="width:120px;font-size:18px;text-align:center;">
-        <button id="pinSubmit" style="width:120px;margin-top:10px;">Submit</button>
-        <div id="pinError" style="display:none;color:#e74c3c;margin-top:8px;font-weight:bold;">Incorrect PIN</div>
-    `;
-    document.body.appendChild(overlay);
-    const pinInput = document.getElementById("pinInput");
-    const pinSubmit = document.getElementById("pinSubmit");
-    const pinError = document.getElementById("pinError");
-    const mainContent = document.querySelector("main");
-    mainContent.style.display = "none";
-
-    pinSubmit.onclick = () => {
-        if(pinInput.value === correctPin){
-            overlay.style.display = "none";
-            mainContent.style.display = "block";
-        } else {
-            pinError.style.display = "block";
-            pinInput.value = "";
-            pinInput.focus();
-        }
-    };
-    pinInput.addEventListener("keypress", (e)=>{ if(e.key === "Enter") pinSubmit.click(); });
-}
-
 // ===== Main =====
 document.addEventListener("DOMContentLoaded", ()=>{
-    setupPin(); // <-- PIN overlay added
 
     document.getElementById("checkinTime").style.width="100%";
 
