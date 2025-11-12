@@ -133,7 +133,6 @@ async function loadContacts(selectedName=null, selectedPhone=null){
 
 // ===== Main =====
 document.addEventListener("DOMContentLoaded", ()=>{
-
     document.getElementById("checkinTime").style.width="100%";
 
     // Check-In Button
@@ -164,7 +163,15 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact:selectedContact||null})
             });
             const confirmationDiv=document.getElementById("confirmation");
-            if(!response.ok){ const errText=await response.text(); confirmationDiv.textContent=`Error: ${errText}`; confirmationDiv.style.display="block"; confirmationDiv.style.backgroundColor="#f8d7da"; confirmationDiv.style.color="#721c24"; setTimeout(()=>{confirmationDiv.style.display="none";},5000); return; }
+            if(!response.ok){
+                const errText=await response.text();
+                confirmationDiv.textContent=`Error: ${errText}`;
+                confirmationDiv.style.display="block";
+                confirmationDiv.style.backgroundColor="#f8d7da";
+                confirmationDiv.style.color="#721c24";
+                setTimeout(()=>{confirmationDiv.style.display="none";},5000);
+                return;
+            }
             const data=await response.json();
             confirmationDiv.textContent=data.message;
             confirmationDiv.style.display="block";
@@ -179,7 +186,11 @@ document.addEventListener("DOMContentLoaded", ()=>{
     const historyHeader=document.getElementById("toggleHistory");
     const historyContent=document.getElementById("checkinHistoryContent");
     if(historyHeader&&historyContent){
-        historyHeader.onclick=()=>{ const hidden=historyContent.style.display==="none"; historyContent.style.display=hidden?"block":"none"; historyHeader.textContent=hidden?"▼ Check-In History":"▶ Check-In History"; };
+        historyHeader.onclick=()=>{ 
+            const hidden=historyContent.style.display==="none"; 
+            historyContent.style.display=hidden?"block":"none"; 
+            historyHeader.textContent=hidden?"▼ Check-In History":"▶ Check-In History"; 
+        };
     }
 
     document.getElementById("getLocation").onclick=getUserLocation;
