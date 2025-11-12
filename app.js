@@ -1,3 +1,37 @@
+// ===== PIN LOCK FEATURE =====
+
+// Change this to your desired 4-digit PIN
+const CORRECT_PIN = "1234";
+
+const pinScreen = document.getElementById("pinLockScreen");
+const pinInput = document.getElementById("pinInput");
+const pinSubmit = document.getElementById("pinSubmit");
+const pinError = document.getElementById("pinError");
+const mainContent = document.getElementById("mainContent");
+
+if (pinScreen && pinInput && pinSubmit) {
+  // Disable main content until unlocked
+  mainContent.style.filter = "blur(3px)";
+  mainContent.style.pointerEvents = "none";
+
+  pinSubmit.addEventListener("click", () => {
+    const entered = pinInput.value.trim();
+    if (entered === CORRECT_PIN) {
+      pinScreen.style.display = "none";
+      mainContent.style.filter = "none";
+      mainContent.style.pointerEvents = "auto";
+    } else {
+      pinError.style.display = "block";
+      pinInput.value = "";
+      pinInput.focus();
+    }
+  });
+
+  pinInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") pinSubmit.click();
+  });
+}
+
 // ===== Escape HTML =====
 function escapeHtml(str) {
     if (typeof str !== "string") return str;
@@ -201,7 +235,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
     document.getElementById("saveNewContact").onclick = async ()=>{
         const name=document.getElementById("newContactName").value.trim();
         const phone=document.getElementById("newContactPhone").value.trim();
-        const notes=document.getElementById("newContactNotes").value.trim();
+        const notes=document.getElementById("newContactNotes")?.value?.trim() || "";
         if(!name || !phone){ alert("Name and Phone are required."); return; }
         try{
             const res = await fetch("https://loneworking-production.up.railway.app/add_contact", {

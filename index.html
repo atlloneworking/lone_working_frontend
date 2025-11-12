@@ -36,11 +36,73 @@
   ul { padding-left:0; list-style:none; line-height:1.6; }
   #newContactForm { display:none; margin-top:10px; background:#fafafa; padding:15px; border-radius:8px; border:1px solid #ddd; box-shadow:0 1px 3px rgba(0,0,0,0.05);}
   #newContactForm .form-group { margin-bottom:10px; }
+
+  /* ===== PIN Lock Screen ===== */
+  #pinLockScreen {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: #2c3e50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
+  }
+  #pinContainer {
+    background: #fff;
+    padding: 30px 25px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+  }
+  #pinContainer h2 {
+    margin-bottom: 20px;
+  }
+  #pinInput {
+    width: 100%;
+    font-size: 28px;
+    text-align: center;
+    letter-spacing: 8px;
+    padding: 12px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    margin-bottom: 15px;
+  }
+  #pinSubmit {
+    background-color: #27ae60;
+    color: white;
+    font-size: 18px;
+    padding: 12px;
+    border: none;
+    border-radius: 8px;
+    width: 100%;
+  }
+  #pinSubmit:hover {
+    background-color: #2ecc71;
+  }
+  #pinError {
+    margin-top: 10px;
+    color: #e74c3c;
+    display: none;
+  }
 </style>
 </head>
 <body>
 
-<main id="mainContent">
+<!-- ===== PIN Lock Screen ===== -->
+<div id="pinLockScreen">
+  <div id="pinContainer">
+    <h2>Enter Access PIN</h2>
+    <input id="pinInput" type="password" maxlength="4" inputmode="numeric" placeholder="••••">
+    <button id="pinSubmit">Unlock</button>
+    <p id="pinError">Incorrect PIN. Try again.</p>
+  </div>
+</div>
+
+<!-- ===== Main App ===== -->
+<main id="mainContent" style="filter: blur(3px); pointer-events: none;">
   <h1>Lone Worker Check-In</h1>
 
   <div class="form-group">
