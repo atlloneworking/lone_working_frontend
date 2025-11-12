@@ -20,12 +20,8 @@
     ul { padding-left:0; list-style:none; line-height:1.6; }
     @media(max-width:600px){main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;} h1{font-size:1.5em;text-align:center;} input, button, select, textarea{font-size:15px;} button{width:100%;}}
     
-    /* Modal styles */
-    #newContactModal { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; z-index:1000; }
-    #newContactModalContent { background:#fff; padding:20px; border-radius:10px; max-width:400px; width:90%; display:flex; flex-direction:column; gap:10px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
-    #newContactModalContent h3 { margin:0 0 10px 0; }
-    #newContactModalContent button { width:auto; padding:8px 12px; }
-    #newContactModalContent .button-row { display:flex; gap:10px; justify-content:flex-end; }
+    #newContactForm { display:none; margin-top:10px; background:#fafafa; padding:15px; border-radius:8px; border:1px solid #ddd; box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+    #newContactForm .form-group { margin-bottom:10px; }
   </style>
 </head>
 <body>
@@ -41,6 +37,25 @@
       <select id="emergencyContact">
         <option value="">Loading contacts...</option>
       </select>
+      <!-- Separate Add Contact Button -->
+      <button id="addContactBtn" style="background:#f39c12; color:white;">➕ Add New Emergency Contact</button>
+      
+      <!-- Hidden Form for Adding Contact -->
+      <div id="newContactForm">
+        <div class="form-group">
+          <input type="text" id="newContactName" placeholder="Name">
+        </div>
+        <div class="form-group">
+          <input type="text" id="newContactPhone" placeholder="Phone">
+        </div>
+        <div class="form-group">
+          <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
+        </div>
+        <div class="form-group">
+          <button id="saveNewContact" style="background:#27ae60; color:white;">Save Contact</button>
+          <button id="cancelNewContact" style="background:#e74c3c; color:white;">Cancel</button>
+        </div>
+      </div>
     </div>
 
     <div class="form-group">
@@ -61,20 +76,6 @@
       </div>
     </div>
   </main>
-
-  <!-- New Contact Modal -->
-  <div id="newContactModal">
-    <div id="newContactModalContent">
-      <h3>Add New Emergency Contact</h3>
-      <input type="text" id="newContactName" placeholder="Name">
-      <input type="text" id="newContactPhone" placeholder="Phone">
-      <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
-      <div class="button-row">
-        <button id="cancelNewContact">Cancel</button>
-        <button id="saveNewContact">Save Contact</button>
-      </div>
-    </div>
-  </div>
 
   <script src="app.js"></script>
 </body>
