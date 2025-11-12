@@ -9,11 +9,9 @@ function escapeHtml(str) {
 async function getUserLocation() {
     const siteInput = document.getElementById("site");
     if (!navigator.geolocation) { siteInput.placeholder="Geolocation not supported"; return; }
-
     navigator.geolocation.getCurrentPosition(async (position)=>{
         const {latitude, longitude} = position.coords;
         siteInput.value=`Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
-
         try {
             const res = await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`);
             const data = await res.json();
@@ -28,7 +26,8 @@ async function getUserLocation() {
 // ===== Active Check-Ins =====
 async function updateActiveCheckins() {
     try {
-        const response = await fetch("/checkins");
+        const response = await fetch("https://loneworking-production.up.railway.app/checkins");
+        if (!response.ok) throw new Error(`Server ${response.status}`);
         const data = await response.json();
         const container = document.getElementById("activeCheckins");
         if (!data.length) { container.innerHTML="<h2>Active Check-Ins</h2><p>No active check-ins.</p>"; return; }
@@ -42,11 +41,7 @@ async function updateActiveCheckins() {
                     <span style="display:block; color:#888; font-size:14px;">Expires: ${new Date(c.expires).toLocaleTimeString()}</span>
                     <span style="display:block; color:#c0392b; font-size:14px;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}</span>
                 </div>
-                <button class="cancel-btn" 
-                    data-user="${encodeURIComponent(c.user)}" 
-                    data-site="${encodeURIComponent(c.site)}" 
-                    style="flex:0 0 auto;padding:10px 14px;font-size:16px;background-color:#e74c3c;color:white;border:none;border-radius:6px;margin-top:5px;"
-                >Cancel</button>
+                <button class="cancel-btn" data-user="${encodeURIComponent(c.user)}" data-site="${encodeURIComponent(c.site)}" style="flex:0 0 auto;padding:10px 14px;font-size:16px;background-color:#e74c3c;color:white;border:none;border-radius:6px;margin-top:5px;">Cancel</button>
             </li>`;
         });
         html+="</ul>";
@@ -58,7 +53,7 @@ async function updateActiveCheckins() {
                 const site=decodeURIComponent(btn.getAttribute("data-site"));
                 if(!confirm(`Cancel check-in for ${user} at ${site}?`)) return;
                 try {
-                    const response = await fetch("/cancel_checkin/", {
+                    const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body: JSON.stringify({user_id:user, site:site})
@@ -66,25 +61,23 @@ async function updateActiveCheckins() {
                     if(!response.ok) throw new Error(`Server ${response.status}`);
                     const data = await response.json();
                     const cDiv=document.getElementById("confirmation");
-                    cDiv.textContent=data.message; 
-                    cDiv.style.display="block"; 
-                    cDiv.style.backgroundColor="#cce5ff"; 
+                    cDiv.textContent=data.message;
+                    cDiv.style.display="block";
+                    cDiv.style.backgroundColor="#cce5ff";
                     cDiv.style.color="#004085";
                     updateActiveCheckins(); updateCheckinHistory();
                     setTimeout(()=>{cDiv.style.display="none";},3000);
                 } catch(err){console.error(err);}
             };
         });
-    } catch(e){
-        console.error("Error fetching check-ins:", e);
-        document.getElementById("activeCheckins").innerHTML="<p>Error loading active check-ins.</p>";
-    }
+    } catch(e){ console.error("Error fetching check-ins:", e); document.getElementById("activeCheckins").innerHTML="<p>Error loading active check-ins.</p>"; }
 }
 
 // ===== Check-in History =====
 async function updateCheckinHistory(){
     try{
-        const response = await fetch("/checkin_history");
+        const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
+        if(!response.ok) throw new Error(`Server ${response.status}`);
         const data = await response.json();
         const container = document.getElementById("checkinHistoryContent");
         if(!data||!data.length){ container.innerHTML="<p>No check-in history.</p>"; return; }
@@ -120,9 +113,8 @@ async function updateCheckinHistory(){
 async function loadContacts(selectedName=null, selectedPhone=null){
     const select = document.getElementById("emergencyContact");
     try {
-        const response = await fetch("/contacts");
+        const response = await fetch("https://loneworking-production.up.railway.app/contacts");
         const data = await response.json();
-
         select.innerHTML = "";
         data.forEach(c => {
             const opt = document.createElement("option");
@@ -130,21 +122,27 @@ async function loadContacts(selectedName=null, selectedPhone=null){
             opt.textContent = `${c.name} (${c.phone})`;
             select.appendChild(opt);
         });
-
         if(selectedName && selectedPhone){
             select.value = `${selectedName} | ${selectedPhone}`;
         }
-
     } catch(e) {
         console.error("Error loading contacts:", e);
         select.innerHTML = "<option value=''>Failed to load contacts</option>";
     }
 }
 
-// ===== Main =====
-document.addEventListener("DOMContentLoaded", ()=>{
-    const correctPin = "1234"; // set your PIN
-    const overlay = document.getElementById("pinOverlay");
+// ===== PIN Overlay =====
+function setupPin(correctPin="1234"){
+    const overlay = document.createElement("div");
+    overlay.id="pinOverlay";
+    overlay.style=`position:fixed;top:0;left:0;width:100%;height:100%;background:#fff;display:flex;flex-direction:column;justify-content:center;align-items:center;z-index:9999;`;
+    overlay.innerHTML=`
+        <h2>Enter PIN</h2>
+        <input type="password" id="pinInput" maxlength="4" placeholder="4-digit PIN" style="width:120px;font-size:18px;text-align:center;">
+        <button id="pinSubmit" style="width:120px;margin-top:10px;">Submit</button>
+        <div id="pinError" style="display:none;color:#e74c3c;margin-top:8px;font-weight:bold;">Incorrect PIN</div>
+    `;
+    document.body.appendChild(overlay);
     const pinInput = document.getElementById("pinInput");
     const pinSubmit = document.getElementById("pinSubmit");
     const pinError = document.getElementById("pinError");
@@ -162,6 +160,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }
     };
     pinInput.addEventListener("keypress", (e)=>{ if(e.key === "Enter") pinSubmit.click(); });
+}
+
+// ===== Main =====
+document.addEventListener("DOMContentLoaded", ()=>{
+    setupPin(); // <-- PIN overlay added
+
+    document.getElementById("checkinTime").style.width="100%";
 
     // Check-In Button
     document.getElementById("checkin").onclick=async ()=>{
@@ -185,7 +190,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if(minutesUntilCheckout<=0){ alert("Check-out must be later than current time."); return; }
 
         try{
-            const response=await fetch("/checkin/", {
+            const response=await fetch("https://loneworking-production.up.railway.app/checkin/", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
                 body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact:selectedContact||null})
@@ -193,7 +198,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const confirmationDiv=document.getElementById("confirmation");
             if(!response.ok){ const errText=await response.text(); confirmationDiv.textContent=`Error: ${errText}`; confirmationDiv.style.display="block"; confirmationDiv.style.backgroundColor="#f8d7da"; confirmationDiv.style.color="#721c24"; setTimeout(()=>{confirmationDiv.style.display="none";},5000); return; }
             const data=await response.json();
-            confirmationDiv.textContent=data.message; confirmationDiv.style.display="block"; confirmationDiv.style.backgroundColor="#d4edda"; confirmationDiv.style.color="#155724";
+            confirmationDiv.textContent=data.message;
+            confirmationDiv.style.display="block";
+            confirmationDiv.style.backgroundColor="#d4edda";
+            confirmationDiv.style.color="#155724";
             updateActiveCheckins(); updateCheckinHistory();
             setTimeout(()=>{confirmationDiv.style.display="none";},3000);
         }catch(e){ console.error(e); }
@@ -206,19 +214,18 @@ document.addEventListener("DOMContentLoaded", ()=>{
         historyHeader.onclick=()=>{ const hidden=historyContent.style.display==="none"; historyContent.style.display=hidden?"block":"none"; historyHeader.textContent=hidden?"▼ Check-In History":"▶ Check-In History"; };
     }
 
-    // Get Location
     document.getElementById("getLocation").onclick=getUserLocation;
 
-    // Add Contact
+    // Add Contact button
     document.getElementById("addContactBtn").onclick = ()=>{ document.getElementById("newContactForm").style.display="block"; };
     document.getElementById("cancelNewContact").onclick = ()=>{ document.getElementById("newContactForm").style.display="none"; };
     document.getElementById("saveNewContact").onclick = async ()=>{
         const name=document.getElementById("newContactName").value.trim();
         const phone=document.getElementById("newContactPhone").value.trim();
         const notes=document.getElementById("newContactNotes").value.trim();
-        if(!name || !phone){ alert("Name / Info and Phone are required."); return; }
+        if(!name || !phone){ alert("Name and Phone are required."); return; }
         try{
-            const res = await fetch("/add_contact", {
+            const res = await fetch("https://loneworking-production.up.railway.app/add_contact", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
                 body: JSON.stringify({name, phone, notes})
