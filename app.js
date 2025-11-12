@@ -117,7 +117,7 @@ async function updateCheckinHistory(){
 }
 
 // ===== Load Contacts =====
-async function loadContacts(selectedInfo=null, selectedPhone=null){
+async function loadContacts(selectedName=null, selectedPhone=null){
     const select = document.getElementById("emergencyContact");
     try {
         const response = await fetch("/contacts");
@@ -131,8 +131,8 @@ async function loadContacts(selectedInfo=null, selectedPhone=null){
             select.appendChild(opt);
         });
 
-        if(selectedInfo && selectedPhone){
-            select.value = `${selectedInfo} | ${selectedPhone}`;
+        if(selectedName && selectedPhone){
+            select.value = `${selectedName} | ${selectedPhone}`;
         }
 
     } catch(e) {
@@ -215,12 +215,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
     document.getElementById("saveNewContact").onclick = async ()=>{
         const name=document.getElementById("newContactName").value.trim();
         const phone=document.getElementById("newContactPhone").value.trim();
-        if(!name || !phone){ alert("Info and Phone are required."); return; }
+        const notes=document.getElementById("newContactNotes").value.trim();
+        if(!name || !phone){ alert("Name / Info and Phone are required."); return; }
         try{
             const res = await fetch("/add_contact", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({name, phone})
+                body: JSON.stringify({name, phone, notes})
             });
             if(!res.ok) throw new Error("Failed to add contact");
             await loadContacts(name, phone);
