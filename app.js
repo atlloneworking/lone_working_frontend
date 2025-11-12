@@ -28,8 +28,7 @@ async function getUserLocation() {
 // ===== Active Check-Ins =====
 async function updateActiveCheckins() {
     try {
-        const response = await fetch("https://loneworking-production.up.railway.app/checkins");
-        if (!response.ok) throw new Error(`Server ${response.status}`);
+        const response = await fetch("/checkins");
         const data = await response.json();
         const container = document.getElementById("activeCheckins");
         if (!data.length) { container.innerHTML="<h2>Active Check-Ins</h2><p>No active check-ins.</p>"; return; }
@@ -59,7 +58,7 @@ async function updateActiveCheckins() {
                 const site=decodeURIComponent(btn.getAttribute("data-site"));
                 if(!confirm(`Cancel check-in for ${user} at ${site}?`)) return;
                 try {
-                    const response = await fetch("https://loneworking-production.up.railway.app/cancel_checkin/", {
+                    const response = await fetch("/cancel_checkin/", {
                         method:"POST",
                         headers:{"Content-Type":"application/json"},
                         body: JSON.stringify({user_id:user, site:site})
@@ -85,8 +84,7 @@ async function updateActiveCheckins() {
 // ===== Check-in History =====
 async function updateCheckinHistory(){
     try{
-        const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
-        if(!response.ok) throw new Error(`Server ${response.status}`);
+        const response = await fetch("/checkin_history");
         const data = await response.json();
         const container = document.getElementById("checkinHistoryContent");
         if(!data||!data.length){ container.innerHTML="<p>No check-in history.</p>"; return; }
@@ -119,10 +117,10 @@ async function updateCheckinHistory(){
 }
 
 // ===== Load Contacts =====
-async function loadContacts(selectedName=null, selectedPhone=null){
+async function loadContacts(selectedInfo=null, selectedPhone=null){
     const select = document.getElementById("emergencyContact");
     try {
-        const response = await fetch("https://loneworking-production.up.railway.app/contacts");
+        const response = await fetch("/contacts");
         const data = await response.json();
 
         select.innerHTML = "";
@@ -133,8 +131,8 @@ async function loadContacts(selectedName=null, selectedPhone=null){
             select.appendChild(opt);
         });
 
-        if(selectedName && selectedPhone){
-            select.value = `${selectedName} | ${selectedPhone}`;
+        if(selectedInfo && selectedPhone){
+            select.value = `${selectedInfo} | ${selectedPhone}`;
         }
 
     } catch(e) {
@@ -145,8 +143,27 @@ async function loadContacts(selectedName=null, selectedPhone=null){
 
 // ===== Main =====
 document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("checkinTime").style.width="100%";
+    const correctPin = "1234"; // set your PIN
+    const overlay = document.getElementById("pinOverlay");
+    const pinInput = document.getElementById("pinInput");
+    const pinSubmit = document.getElementById("pinSubmit");
+    const pinError = document.getElementById("pinError");
+    const mainContent = document.querySelector("main");
+    mainContent.style.display = "none";
 
+    pinSubmit.onclick = () => {
+        if(pinInput.value === correctPin){
+            overlay.style.display = "none";
+            mainContent.style.display = "block";
+        } else {
+            pinError.style.display = "block";
+            pinInput.value = "";
+            pinInput.focus();
+        }
+    };
+    pinInput.addEventListener("keypress", (e)=>{ if(e.key === "Enter") pinSubmit.click(); });
+
+    // Check-In Button
     document.getElementById("checkin").onclick=async ()=>{
         const user=document.getElementById("user").value.trim();
         const site=document.getElementById("site").value.trim();
@@ -168,7 +185,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if(minutesUntilCheckout<=0){ alert("Check-out must be later than current time."); return; }
 
         try{
-            const response=await fetch("https://loneworking-production.up.railway.app/checkin/", {
+            const response=await fetch("/checkin/", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
                 body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact:selectedContact||null})
@@ -182,35 +199,28 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }catch(e){ console.error(e); }
     };
 
+    // Toggle History
     const historyHeader=document.getElementById("toggleHistory");
     const historyContent=document.getElementById("checkinHistoryContent");
     if(historyHeader&&historyContent){
-        historyHeader.onclick=()=>{
-            const hidden=historyContent.style.display==="none";
-            historyContent.style.display=hidden?"block":"none";
-            historyHeader.textContent=hidden?"▼ Check-In History":"▶ Check-In History";
-        };
+        historyHeader.onclick=()=>{ const hidden=historyContent.style.display==="none"; historyContent.style.display=hidden?"block":"none"; historyHeader.textContent=hidden?"▼ Check-In History":"▶ Check-In History"; };
     }
 
+    // Get Location
     document.getElementById("getLocation").onclick=getUserLocation;
 
-    // Add Contact button
-    document.getElementById("addContactBtn").onclick = ()=>{
-        document.getElementById("newContactForm").style.display="block";
-    };
-    document.getElementById("cancelNewContact").onclick = ()=>{
-        document.getElementById("newContactForm").style.display="none";
-    };
+    // Add Contact
+    document.getElementById("addContactBtn").onclick = ()=>{ document.getElementById("newContactForm").style.display="block"; };
+    document.getElementById("cancelNewContact").onclick = ()=>{ document.getElementById("newContactForm").style.display="none"; };
     document.getElementById("saveNewContact").onclick = async ()=>{
         const name=document.getElementById("newContactName").value.trim();
         const phone=document.getElementById("newContactPhone").value.trim();
-        const notes=document.getElementById("newContactNotes").value.trim();
-        if(!name || !phone){ alert("Name and Phone are required."); return; }
+        if(!name || !phone){ alert("Info and Phone are required."); return; }
         try{
-            const res = await fetch("https://loneworking-production.up.railway.app/add_contact", {
+            const res = await fetch("/add_contact", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({name, phone, notes})
+                body: JSON.stringify({name, phone})
             });
             if(!res.ok) throw new Error("Failed to add contact");
             await loadContacts(name, phone);
