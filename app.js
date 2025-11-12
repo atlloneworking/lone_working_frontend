@@ -41,8 +41,8 @@ async function updateActiveCheckins() {
                     <span style="display:block; font-weight:500;">${escapeHtml(c.user)}</span>
                     <span style="display:block; color:#555;">${escapeHtml(c.site)}</span>
                     <span style="display:block; color:#888; font-size:14px;">Expires: ${new Date(c.expires).toLocaleTimeString()}</span>
-                    <span style="display:block; color:#c0392b; font-size:14px;">Contact: ${escapeHtml(c.emergency_contact || 'N/A')}</span>
-                    <span style="display:block; color:#2980b9; font-size:14px;">Notes: ${escapeHtml(c.contact_notes || '')}</span>
+                    <span style="display:block; color:#c0392b; font-size:14px;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}</span>
+                    <span style="display:block; color:#8e44ad; font-size:14px;">Notes: ${escapeHtml(c.contact_notes||'')}</span>
                 </div>
                 <button class="cancel-btn" 
                     data-user="${encodeURIComponent(c.user)}" 
@@ -111,8 +111,8 @@ async function updateCheckinHistory(){
                 html+=`<div style="color:${cssColor}; margin-bottom:3px;">${checkOutTime} — <strong>${action}</strong></div>`;
             }
             html+=`<div style="color:#2ecc71;">${checkInTime} — <strong>✅ Check In</strong></div>`;
-            html+=`<div style="color:#c0392b;">Contact: ${escapeHtml(c.emergency_contact || 'N/A')}</div>`;
-            html+=`<div style="color:#2980b9;">Notes: ${escapeHtml(c.contact_notes || '')}</div>`;
+            html+=`<div style="color:#c0392b;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}</div>`;
+            html+=`<div style="color:#8e44ad;">Notes: ${escapeHtml(c.contact_notes||'')}</div>`;
             html+=`</div>`;
         });
         html+="</div>";
@@ -120,41 +120,48 @@ async function updateCheckinHistory(){
     }catch(e){ console.error("Error fetching history:", e); container.innerHTML="<p>Error loading history.</p>"; }
 }
 
-// ===== Load Contacts =====
-async function loadContacts(selectedValue=null){
-    const select=document.getElementById("emergencyContact");
-    try{
+// ===== Emergency Contacts =====
+async function loadContacts(selectedContact=null){
+    const select = document.getElementById("emergencyContact");
+    try {
         const response = await fetch("/contacts");
         const data = await response.json();
+
         select.innerHTML = "";
-        data.forEach(c=>{
-            const opt=document.createElement("option");
-            opt.value = `${c.name} | ${c.phone} | ${c.notes || ''}`;
+        data.forEach(c => {
+            const opt = document.createElement("option");
+            opt.value = `${c.name} | ${c.phone} | ${c.notes || ""}`;
             opt.textContent = `${c.name} (${c.phone})`;
             select.appendChild(opt);
         });
-        const blankOpt=document.createElement("option");
-        blankOpt.value="";
-        blankOpt.textContent="Select Contact";
-        select.prepend(blankOpt);
 
-        if(selectedValue) select.value = selectedValue;
-    }catch(e){ console.error(e); select.innerHTML="<option value=''>Failed to load contacts</option>"; }
+        // Add placeholder option
+        const placeholderOpt = document.createElement("option");
+        placeholderOpt.value = "";
+        placeholderOpt.textContent = "-- Select Contact --";
+        select.insertBefore(placeholderOpt, select.firstChild);
+        select.value = selectedContact || "";
+
+    } catch(e) {
+        console.error("Error loading contacts:", e);
+        select.innerHTML = "<option value=''>Failed to load contacts</option>";
+    }
 }
 
-// ===== Main Event Handlers =====
-document.addEventListener("DOMContentLoaded", ()=>{
-    const newContactForm = document.getElementById("newContactForm");
+// ===== Add Emergency Contact UI =====
+function setupAddContactUI(){
+    const container = document.getElementById("addContactContainer");
+    const btn = document.getElementById("showAddContact");
+    const saveBtn = document.getElementById("saveContact");
 
-    document.getElementById("addContactBtn").onclick = ()=>{
-        newContactForm.style.display = newContactForm.style.display === "flex" ? "none" : "flex";
-    };
+    btn.onclick = ()=>{ container.style.display="block"; };
 
-    document.getElementById("saveNewContactBtn").onclick = async ()=>{
+    saveBtn.onclick = async ()=>{
         const name = document.getElementById("newContactName").value.trim();
         const phone = document.getElementById("newContactPhone").value.trim();
         const notes = document.getElementById("newContactNotes").value.trim();
-        if(!name || !phone) return alert("Name and phone are required.");
+
+        if(!name || !phone){ return alert("Name and phone are required."); }
 
         try{
             const response = await fetch("/add_contact", {
@@ -163,22 +170,34 @@ document.addEventListener("DOMContentLoaded", ()=>{
                 body: JSON.stringify({name, phone, notes})
             });
             if(!response.ok) throw new Error("Failed to add contact");
-
+            await loadContacts();
+            alert(`✅ Contact "${name}" added!`);
             document.getElementById("newContactName").value="";
             document.getElementById("newContactPhone").value="";
             document.getElementById("newContactNotes").value="";
-            newContactForm.style.display="none";
-            await loadContacts(`${name} | ${phone} | ${notes}`);
-            alert(`✅ Contact "${name}" added!`);
+            container.style.display="none";
         }catch(e){ console.error(e); alert("Failed to add contact."); }
     };
+}
+
+// ===== Main Event Handlers =====
+document.addEventListener("DOMContentLoaded", ()=>{
+    document.getElementById("checkinTime").style.width="100%";
 
     document.getElementById("checkin").onclick=async ()=>{
         const user=document.getElementById("user").value.trim();
         const site=document.getElementById("site").value.trim();
         let checkoutTime=document.getElementById("checkinTime").value.trim();
         checkoutTime=checkoutTime.replace(/\s|\u00A0|\u200B/g,'');
-        const selectedContact=document.getElementById("emergencyContact").value;
+
+        const contactValue = document.getElementById("emergencyContact").value;
+        let emergency_contact = null;
+        let contact_notes = null;
+        if(contactValue){
+            const parts = contactValue.split("|").map(s=>s.trim());
+            emergency_contact = `${parts[0]} | ${parts[1]}`;
+            contact_notes = parts[2] || "";
+        }
 
         if(!user||!site){ alert("Enter User ID and Site."); return; }
         if(!checkoutTime){ alert("Enter a valid check-out time."); return; }
@@ -194,24 +213,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
         if(minutesUntilCheckout<=0){ alert("Check-out must be later than current time."); return; }
 
         try{
-            let contactName = null, contactPhone = null, contactNotes = null;
-            if(selectedContact){
-                const parts = selectedContact.split("|");
-                contactName = parts[0].trim();
-                contactPhone = parts[1].trim();
-                contactNotes = parts[2]?.trim() || "";
-            }
-
-            const response = await fetch("/checkin/", {
+            const response=await fetch("/checkin/", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({
-                    user_id:user,
-                    site:site,
-                    minutes:minutesUntilCheckout,
-                    emergency_contact: contactName,
-                    contact_notes: contactNotes
-                })
+                body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact, contact_notes})
             });
             const confirmationDiv=document.getElementById("confirmation");
             if(!response.ok){ const errText=await response.text(); confirmationDiv.textContent=`Error: ${errText}`; confirmationDiv.style.display="block"; confirmationDiv.style.backgroundColor="#f8d7da"; confirmationDiv.style.color="#721c24"; setTimeout(()=>{confirmationDiv.style.display="none";},5000); return; }
@@ -221,8 +226,6 @@ document.addEventListener("DOMContentLoaded", ()=>{
             setTimeout(()=>{confirmationDiv.style.display="none";},3000);
         }catch(e){ console.error(e); }
     };
-
-    document.getElementById("getLocation").onclick=getUserLocation;
 
     const historyHeader=document.getElementById("toggleHistory");
     const historyContent=document.getElementById("checkinHistoryContent");
@@ -234,7 +237,10 @@ document.addEventListener("DOMContentLoaded", ()=>{
         };
     }
 
+    document.getElementById("getLocation").onclick=getUserLocation;
+
     loadContacts();
+    setupAddContactUI();
     updateActiveCheckins();
     updateCheckinHistory();
     setInterval(()=>{ updateActiveCheckins(); updateCheckinHistory(); }, 30000);

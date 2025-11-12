@@ -6,21 +6,44 @@
   <title>Lone Worker</title>
   <link rel="manifest" href="manifest.json">
   <style>
-    body { font-family: 'Segoe UI', Roboto, Arial, sans-serif; margin:0; padding:0; background:#f4f6f8; color:#333; display:flex; flex-direction:column; align-items:center; min-height:100vh; box-sizing:border-box; }
+    /* ===== Base Styles ===== */
+    body {
+      font-family: 'Segoe UI', Roboto, Arial, sans-serif;
+      margin:0; padding:0;
+      background:#f4f6f8; color:#333;
+      display:flex; flex-direction:column; align-items:center;
+      min-height:100vh; box-sizing:border-box;
+    }
     h1,h2,h3{color:#2c3e50;}
-    main { width:100%; max-width:600px; background:#fff; padding:20px; margin:30px 10px 0 10px; border-radius:12px; box-shadow:0 4px 8px rgba(0,0,0,0.1); box-sizing:border-box; }
-    .form-group{display:flex; flex-direction:column; gap:10px; margin-bottom:15px;}
-    input, button, select, textarea { padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
+    main {
+      width:100%; max-width:600px;
+      background:#fff; padding:20px;
+      margin:30px 10px 0 10px;
+      border-radius:12px;
+      box-shadow:0 4px 8px rgba(0,0,0,0.1);
+      box-sizing:border-box;
+    }
+    .form-group{
+      display:flex; flex-direction:column; gap:10px; margin-bottom:15px;
+    }
+    input, button, select, textarea {
+      padding:10px; font-size:16px; border-radius:6px; border:1px solid #ccc; width:100%; box-sizing:border-box;
+    }
     button{cursor:pointer; border:none; transition: background 0.2s, transform 0.1s;}
     button:hover { transform: scale(1.02); }
     #checkin { background-color:#2ecc71; color:white; }
     #getLocation { background-color:#3498db; color:white; }
-    #addContactBtn { background-color:#f39c12; color:white; margin-top:5px; }
+    #showAddContact, #saveContact { background-color:#8e44ad; color:white; }
     #confirmation{margin-top:15px; padding:10px; border-radius:6px; display:none; text-align:center; font-weight:bold;}
     #activeCheckins, #checkinHistory{margin-top:25px; background:#fdfdfd; padding:15px; border-radius:8px; box-shadow:0 2px 5px rgba(0,0,0,0.05);}
     ul { padding-left:0; list-style:none; line-height:1.6; }
-    #newContactForm { display:none; flex-direction:column; gap:8px; margin-top:10px; padding:10px; border:1px solid #ddd; border-radius:6px; background:#fafafa; }
-    @media(max-width:600px){main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;} h1{font-size:1.5em;text-align:center;} input, button, select, textarea{font-size:15px;} button{width:100%;}}
+    #addContactContainer { display:none; gap:10px; margin-top:10px; }
+    @media(max-width:600px){
+      main{margin-top:15px;margin-left:8px;margin-right:8px;border-radius:12px;padding:15px;box-shadow:none;}
+      h1{font-size:1.5em;text-align:center;}
+      input, button, select, textarea{font-size:15px;}
+      button{width:100%;}
+    }
   </style>
 </head>
 <body>
@@ -39,15 +62,13 @@
         <option value="">Loading contacts...</option>
       </select>
 
-      <!-- Add new contact button -->
-      <button id="addContactBtn">➕ Add New Emergency Contact Details</button>
-
-      <!-- New contact form -->
-      <div id="newContactForm">
+      <!-- Add new contact -->
+      <button id="showAddContact">➕ Add New Emergency Contact</button>
+      <div id="addContactContainer">
         <input id="newContactName" placeholder="Contact Name">
-        <input id="newContactPhone" placeholder="Phone Number">
+        <input id="newContactPhone" placeholder="Contact Phone">
         <textarea id="newContactNotes" placeholder="Notes (optional)"></textarea>
-        <button id="saveNewContactBtn" style="background-color:#27ae60; color:white;">Save Contact</button>
+        <button id="saveContact">💾 Save Contact</button>
       </div>
     </div>
 
