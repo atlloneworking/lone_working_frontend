@@ -41,7 +41,10 @@ async function updateActiveCheckins() {
                     <span style="display:block; font-weight:500;">${escapeHtml(c.user)}</span>
                     <span style="display:block; color:#555;">${escapeHtml(c.site)}</span>
                     <span style="display:block; color:#888; font-size:14px;">Expires: ${new Date(c.expires).toLocaleTimeString()}</span>
-                    <span style="display:block; color:#c0392b; font-size:14px;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}</span>
+                    <span style="display:block; color:#c0392b; font-size:14px;">
+                        Contact: ${escapeHtml(c.emergency_contact||'N/A')}
+                        ${c.notes ? `<br><span style="font-size:13px; color:#555;">Notes: ${escapeHtml(c.notes)}</span>` : ''}
+                    </span>
                 </div>
                 <button class="cancel-btn" 
                     data-user="${encodeURIComponent(c.user)}" 
@@ -85,7 +88,7 @@ async function updateActiveCheckins() {
 // ===== Check-in History =====
 async function updateCheckinHistory(){
     try{
-        const response = await fetch("https://loneworking-production.up.railway.app/checkin_history");
+        const response=await fetch("https://loneworking-production.up.railway.app/checkin_history");
         if(!response.ok) throw new Error(`Server ${response.status}`);
         const data = await response.json();
         const container = document.getElementById("checkinHistoryContent");
@@ -110,7 +113,9 @@ async function updateCheckinHistory(){
                 html+=`<div style="color:${cssColor}; margin-bottom:3px;">${checkOutTime} — <strong>${action}</strong></div>`;
             }
             html+=`<div style="color:#2ecc71;">${checkInTime} — <strong>✅ Check In</strong></div>`;
-            html+=`<div style="color:#c0392b;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}</div>`;
+            html+=`<div style="color:#c0392b;">Contact: ${escapeHtml(c.emergency_contact||'N/A')}
+                ${c.notes ? `<br><span style="font-size:13px; color:#555;">Notes: ${escapeHtml(c.notes)}</span>` : ''}
+            </div>`;
             html+=`</div>`;
         });
         html+="</div>";
@@ -118,41 +123,36 @@ async function updateCheckinHistory(){
     }catch(e){ console.error("Error fetching history:", e); container.innerHTML="<p>Error loading history.</p>"; }
 }
 
-// ===== Load Contacts =====
-async function loadContacts(selectedName=null, selectedPhone=null){
-    const select = document.getElementById("emergencyContact");
-    try {
+// ===== Emergency Contacts =====
+async function loadContacts(){
+    const container = document.getElementById("contactContainer");
+    try{
         const response = await fetch("https://loneworking-production.up.railway.app/contacts");
         const data = await response.json();
 
-        select.innerHTML = "";
-        data.forEach(c => {
-            const opt = document.createElement("option");
-            opt.value = `${c.name} | ${c.phone}`;
-            opt.textContent = `${c.name} (${c.phone})`;
-            select.appendChild(opt);
+        container.innerHTML = "";
+
+        data.forEach(c=>{
+            const div = document.createElement("div");
+            div.textContent = `${c.name} (${c.phone})`;
+            container.appendChild(div);
         });
-
-        if(selectedName && selectedPhone){
-            select.value = `${selectedName} | ${selectedPhone}`;
-        }
-
-    } catch(e) {
-        console.error("Error loading contacts:", e);
-        select.innerHTML = "<option value=''>Failed to load contacts</option>";
-    }
+    } catch(e){ console.error("Error loading contacts:", e); container.innerHTML="<p>Failed to load contacts.</p>"; }
 }
 
-// ===== Main =====
+// ===== Main Event Handlers =====
 document.addEventListener("DOMContentLoaded", ()=>{
-    document.getElementById("checkinTime").style.width="100%";
 
+    // Check-in Button
     document.getElementById("checkin").onclick=async ()=>{
         const user=document.getElementById("user").value.trim();
         const site=document.getElementById("site").value.trim();
         let checkoutTime=document.getElementById("checkinTime").value.trim();
         checkoutTime=checkoutTime.replace(/\s|\u00A0|\u200B/g,'');
-        const selectedContact=document.getElementById("emergencyContact").value;
+
+        const selectedContact=document.getElementById("newContactName").value || null;
+        const selectedPhone=document.getElementById("newContactPhone").value || null;
+        const notes=document.getElementById("newContactNotes").value || null;
 
         if(!user||!site){ alert("Enter User ID and Site."); return; }
         if(!checkoutTime){ alert("Enter a valid check-out time."); return; }
@@ -171,7 +171,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
             const response=await fetch("https://loneworking-production.up.railway.app/checkin/", {
                 method:"POST",
                 headers:{"Content-Type":"application/json"},
-                body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact:selectedContact||null})
+                body:JSON.stringify({user_id:user, site:site, minutes:minutesUntilCheckout, emergency_contact:selectedContact, phone:selectedPhone, notes:notes})
             });
             const confirmationDiv=document.getElementById("confirmation");
             if(!response.ok){ const errText=await response.text(); confirmationDiv.textContent=`Error: ${errText}`; confirmationDiv.style.display="block"; confirmationDiv.style.backgroundColor="#f8d7da"; confirmationDiv.style.color="#721c24"; setTimeout(()=>{confirmationDiv.style.display="none";},5000); return; }
@@ -182,6 +182,7 @@ document.addEventListener("DOMContentLoaded", ()=>{
         }catch(e){ console.error(e); }
     };
 
+    // History Toggle
     const historyHeader=document.getElementById("toggleHistory");
     const historyContent=document.getElementById("checkinHistoryContent");
     if(historyHeader&&historyContent){
@@ -192,34 +193,13 @@ document.addEventListener("DOMContentLoaded", ()=>{
         };
     }
 
+    // Location
     document.getElementById("getLocation").onclick=getUserLocation;
 
-    // Add Contact button
-    document.getElementById("addContactBtn").onclick = ()=>{
-        document.getElementById("newContactForm").style.display="block";
-    };
-    document.getElementById("cancelNewContact").onclick = ()=>{
-        document.getElementById("newContactForm").style.display="none";
-    };
-    document.getElementById("saveNewContact").onclick = async ()=>{
-        const name=document.getElementById("newContactName").value.trim();
-        const phone=document.getElementById("newContactPhone").value.trim();
-        const notes=document.getElementById("newContactNotes").value.trim();
-        if(!name || !phone){ alert("Name and Phone are required."); return; }
-        try{
-            const res = await fetch("https://loneworking-production.up.railway.app/add_contact", {
-                method:"POST",
-                headers:{"Content-Type":"application/json"},
-                body: JSON.stringify({name, phone, notes})
-            });
-            if(!res.ok) throw new Error("Failed to add contact");
-            await loadContacts(name, phone);
-            document.getElementById("newContactForm").style.display="none";
-            alert(`✅ Contact "${name}" added!`);
-        }catch(e){ console.error(e); alert("Failed to add contact."); }
-    };
-
+    // Load contacts for display
     loadContacts();
+
+    // Update check-ins and history
     updateActiveCheckins();
     updateCheckinHistory();
     setInterval(()=>{ updateActiveCheckins(); updateCheckinHistory(); }, 30000);
