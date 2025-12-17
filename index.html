@@ -110,18 +110,37 @@
   }
 
   /* ===== Responsive adjustments for small screens ===== */
-  @media (max-width: 480px) {
+   @media (max-width: 480px) {
     main {
-      margin-left: 16px;
-      margin-right: 10px;
-    }
-    input, select, button, textarea {
-      font-size: 15px;
-    }
-    #map {
-      height: 200px;
-    }
+     width: 100%;
+     margin: 20px auto 0 auto;
+     padding: 24px 20px; /* more breathing room left & right */
   }
+
+  input, select, button, textarea {
+    font-size: 15px;
+  }
+
+  #map {
+    height: 200px;
+  }
+}
+@media (max-width: 480px) {
+  main {
+    width: 100%;
+    margin: 20px auto 0 auto;
+    padding: 24px 20px; /* more breathing room left & right */
+  }
+
+  input, select, button, textarea {
+    font-size: 15px;
+  }
+
+  #map {
+    height: 200px;
+  }
+}
+
 </style>
 </head>
 
