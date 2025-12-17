@@ -383,7 +383,7 @@ async function doCheckIn() {
         user_id: user,
         site: site,
         minutes: minutesUntilCheckout,
-        emergency_contact: selectedContact || null
+        emergency_contact: selectedContact || null,
         contact_notes: notes
       })
     });
