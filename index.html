@@ -21,7 +21,7 @@
   }
 
   main {
-    width: calc(100% - 20px); /* default horizontal spacing */
+    width: calc(100% - 20px);
     max-width: 600px;
     background: #fff;
     padding: 20px;
@@ -48,7 +48,7 @@
     margin-bottom: 15px;
   }
 
-  input, select, button {
+  input, select, button, textarea {
     padding: 10px;
     font-size: 16px;
     border-radius: 6px;
@@ -112,14 +112,14 @@
   /* ===== Responsive adjustments for small screens ===== */
   @media (max-width: 480px) {
     main {
-      margin-left: 16px;   /* larger left spacing for mobile */
-      margin-right: 10px;  /* keep right spacing smaller */
+      margin-left: 16px;
+      margin-right: 10px;
     }
-    input, select, button {
-      font-size: 15px;     /* slightly smaller for mobile */
+    input, select, button, textarea {
+      font-size: 15px;
     }
     #map {
-      height: 200px;       /* smaller map for mobile */
+      height: 200px;
     }
   }
 </style>
@@ -160,6 +160,9 @@
     <select id="emergencyContact">
       <option>Loading...</option>
     </select>
+
+    <label>Notes</label>
+    <textarea id="checkinNotes" placeholder="Optional notes..." rows="3"></textarea>
 
     <button id="addContactBtn">➕ Add New Emergency Contact</button>
 

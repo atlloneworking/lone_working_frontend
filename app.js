@@ -331,6 +331,7 @@ async function saveNewContact() {
 async function doCheckIn() {
   const userEl = document.getElementById("user");
   const siteEl = document.getElementById("site");
+  const notesEl = document.getElementById("checkinNotes"); // NEW NOTES FIELD
   const checkinTimeEl = document.getElementById("checkinTime");
   const contactSelect = document.getElementById("emergencyContact");
 
@@ -371,6 +372,8 @@ async function doCheckIn() {
   }
 
   const selectedContact = contactSelect ? contactSelect.value || null : null;
+  const notes = notesEl ? notesEl.value.trim() : ""; // <-- ADD THIS
+
 
   try {
     const response = await fetch(`${API_BASE}/checkin/`, {
@@ -381,6 +384,7 @@ async function doCheckIn() {
         site: site,
         minutes: minutesUntilCheckout,
         emergency_contact: selectedContact || null
+        contact_notes: notes
       })
     });
     const confirmationDiv = document.getElementById("confirmation");
