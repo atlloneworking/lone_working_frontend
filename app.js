@@ -1,14 +1,14 @@
 // =========================
-// Full app.js — FULL FEATURE + MAP
+// Full app.js — FULL FEATURE
 // =========================
 
 // ===== CONFIG =====
 const API_BASE = "https://loneworking-production.up.railway.app";
 const CORRECT_PIN = "1234";
 
-// ===== MAP GLOBALS =====
-let map = null;
-let mapMarker = null;
+// ===== MAP GLOBALS (ADDED) =====
+let leafletMap = null;
+let leafletMarker = null;
 
 // ===== PIN LOCK FEATURE =====
 (function initPinLock() {
@@ -24,108 +24,125 @@ let mapMarker = null;
   mainContent.style.pointerEvents = "none";
 
   const unlock = () => {
-    if (pinInput.value === CORRECT_PIN) {
+    if ((pinInput.value || "").trim() === CORRECT_PIN) {
       pinScreen.style.display = "none";
       mainContent.style.filter = "none";
       mainContent.style.pointerEvents = "auto";
     } else {
-      pinError.style.display = "block";
+      if (pinError) pinError.style.display = "block";
       pinInput.value = "";
+      pinInput.focus();
     }
   };
 
   pinSubmit.addEventListener("click", unlock);
-  pinInput.addEventListener("keypress", e => e.key === "Enter" && unlock());
+  pinInput.addEventListener("keypress", e => {
+    if (e.key === "Enter") unlock();
+  });
 })();
 
 // ===== Utility =====
 function escapeHtml(str) {
   if (typeof str !== "string") return str;
-  return str.replace(/&/g, "&amp;")
-            .replace(/</g, "&lt;")
-            .replace(/>/g, "&gt;")
-            .replace(/"/g, "&quot;")
-            .replace(/'/g, "&#039;");
+  return str
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
 
-// ===== LOCATION + MAP =====
+// ===== Get and autofill user location (MAP ADDED) =====
 async function getUserLocation() {
   const siteInput = document.getElementById("site");
   const mapDiv = document.getElementById("map");
+  if (!siteInput) return;
+
   if (!navigator.geolocation) {
     siteInput.placeholder = "Geolocation not supported";
     return;
   }
 
   navigator.geolocation.getCurrentPosition(
-    async pos => {
-      const { latitude, longitude } = pos.coords;
+    async position => {
+      const { latitude, longitude } = position.coords;
 
-      // Show map
-      mapDiv.style.display = "block";
+      siteInput.value = `Lat: ${latitude.toFixed(5)}, Lon: ${longitude.toFixed(5)}`;
 
-      // Init map once
-      if (!map) {
-        map = L.map("map").setView([latitude, longitude], 16);
-        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
-          attribution: "© OpenStreetMap"
-        }).addTo(map);
-        mapMarker = L.marker([latitude, longitude]).addTo(map);
-      } else {
-        map.setView([latitude, longitude], 16);
-        mapMarker.setLatLng([latitude, longitude]);
-      }
-
-      // Reverse geocode
       try {
         const res = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${latitude}&lon=${longitude}`
+          `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${encodeURIComponent(latitude)}&lon=${encodeURIComponent(longitude)}`
         );
         const data = await res.json();
-        siteInput.value = data.display_name || `Lat ${latitude}, Lon ${longitude}`;
-      } catch {
-        siteInput.value = `Lat ${latitude}, Lon ${longitude}`;
+        if (data?.display_name) siteInput.value = data.display_name;
+      } catch (err) {
+        console.warn("Reverse geocoding failed:", err);
+      }
+
+      // ===== MAP DISPLAY =====
+      if (mapDiv) {
+        mapDiv.style.display = "block";
+
+        if (!leafletMap) {
+          leafletMap = L.map("map").setView([latitude, longitude], 16);
+          L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            attribution: "© OpenStreetMap"
+          }).addTo(leafletMap);
+
+          leafletMarker = L.marker([latitude, longitude]).addTo(leafletMap);
+        } else {
+          leafletMap.setView([latitude, longitude], 16);
+          leafletMarker.setLatLng([latitude, longitude]);
+        }
       }
     },
-    () => {
+    error => {
+      console.error("Location error:", error);
       siteInput.placeholder = "Location permission denied";
     }
   );
 }
 
-// ===== ACTIVE CHECKINS =====
+// ===== Active Check-ins =====
 async function updateActiveCheckins() {
   const container = document.getElementById("activeCheckins");
+  if (!container) return;
+
   container.innerHTML = "<h2>Active Check-Ins</h2><p>Loading...</p>";
 
   try {
-    const res = await fetch(`${API_BASE}/checkins`);
-    const data = await res.json();
+    const response = await fetch(`${API_BASE}/checkins`);
+    if (!response.ok) throw new Error(response.status);
+    const data = await response.json();
 
-    if (!data.length) {
+    if (!Array.isArray(data) || !data.length) {
       container.innerHTML = "<h2>Active Check-Ins</h2><p>No active check-ins.</p>";
       return;
     }
 
-    container.innerHTML =
-      "<h2>Active Check-Ins</h2>" +
-      data.map(c => `
-        <div style="margin-bottom:10px;">
+    let html = "<h2>Active Check-Ins</h2><ul style='list-style:none;padding:0'>";
+    data.forEach(c => {
+      html += `
+        <li style="margin-bottom:10px">
           <strong>${escapeHtml(c.user)}</strong><br>
           ${escapeHtml(c.site)}<br>
           Expires: ${new Date(c.expires).toLocaleTimeString()}<br>
-          <button data-user="${c.user}" data-site="${c.site}" class="cancel-btn">Cancel</button>
-        </div>`).join("");
+          Contact: ${escapeHtml(c.emergency_contact || "N/A")}<br>
+          <button class="cancel-btn" data-user="${encodeURIComponent(c.user)}" data-site="${encodeURIComponent(c.site)}">Cancel</button>
+        </li>`;
+    });
+    html += "</ul>";
+    container.innerHTML = html;
 
-    document.querySelectorAll(".cancel-btn").forEach(btn => {
+    container.querySelectorAll(".cancel-btn").forEach(btn => {
       btn.onclick = async () => {
         if (!confirm("Cancel check-in?")) return;
         await fetch(`${API_BASE}/cancel_checkin/`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            user_id: btn.dataset.user,
-            site: btn.dataset.site
+            user_id: decodeURIComponent(btn.dataset.user),
+            site: decodeURIComponent(btn.dataset.site)
           })
         });
         updateActiveCheckins();
@@ -133,26 +150,28 @@ async function updateActiveCheckins() {
       };
     });
   } catch {
-    container.innerHTML = "<p>Error loading check-ins.</p>";
+    container.innerHTML = "<p>Error loading active check-ins.</p>";
   }
 }
 
-// ===== HISTORY =====
+// ===== History =====
 async function updateCheckinHistory() {
   const container = document.getElementById("checkinHistoryContent");
+  if (!container) return;
+
   container.innerHTML = "<p>Loading...</p>";
 
   try {
-    const res = await fetch(`${API_BASE}/checkin_history`);
-    const data = await res.json();
+    const response = await fetch(`${API_BASE}/checkin_history`);
+    const data = await response.json();
 
-    if (!data.length) {
+    if (!Array.isArray(data) || !data.length) {
       container.innerHTML = "<p>No history.</p>";
       return;
     }
 
     container.innerHTML = data.map(c => `
-      <div style="margin-bottom:8px;">
+      <div style="margin-bottom:8px">
         <strong>${escapeHtml(c.user)}</strong> — ${escapeHtml(c.site)}<br>
         In: ${new Date(c.checked_in_at).toLocaleString()}<br>
         Out: ${c.canceled_at || c.expired_at || "Active"}
@@ -162,9 +181,11 @@ async function updateCheckinHistory() {
   }
 }
 
-// ===== CONTACTS =====
+// ===== Contacts =====
 async function loadContacts() {
   const select = document.getElementById("emergencyContact");
+  if (!select) return;
+
   select.innerHTML = "<option>Loading...</option>";
 
   try {
@@ -181,7 +202,7 @@ async function loadContacts() {
 async function saveNewContact() {
   const name = newContactName.value.trim();
   const phone = newContactPhone.value.trim();
-  if (!name || !phone) return alert("Required");
+  if (!name || !phone) return alert("Name and phone required");
 
   await fetch(`${API_BASE}/add_contact`, {
     method: "POST",
@@ -193,25 +214,26 @@ async function saveNewContact() {
   loadContacts();
 }
 
-// ===== CHECK-IN =====
+// ===== Check-In =====
 async function doCheckIn() {
-  const user = user.value.trim();
-  const site = site.value.trim();
+  const userVal = user.value.trim();
+  const siteVal = site.value.trim();
   const time = checkinTime.value;
-  if (!user || !site || !time) return alert("Missing fields");
+
+  if (!userVal || !siteVal || !time) return alert("Missing fields");
 
   const [h, m] = time.split(":").map(Number);
   const now = new Date();
-  const expiry = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
-  const minutes = Math.ceil((expiry - now) / 60000);
-  if (minutes <= 0) return alert("Time must be future");
+  const expires = new Date(now.getFullYear(), now.getMonth(), now.getDate(), h, m);
+  const minutes = Math.ceil((expires - now) / 60000);
+  if (minutes <= 0) return alert("Time must be in future");
 
   await fetch(`${API_BASE}/checkin/`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
-      user_id: user,
-      site,
+      user_id: userVal,
+      site: siteVal,
       minutes,
       emergency_contact: emergencyContact.value
     })
@@ -222,12 +244,21 @@ async function doCheckIn() {
 }
 
 // ===== CSV =====
-function downloadCSV(filename, rows) {
+async function handleDownloadHistory() {
+  const res = await fetch(`${API_BASE}/checkin_history`);
+  const data = await res.json();
+  if (!data.length) return alert("No history");
+
+  const rows = [["User", "Site", "In", "Out"]];
+  data.forEach(e => {
+    rows.push([e.user, e.site, e.checked_in_at, e.canceled_at || e.expired_at]);
+  });
+
   const csv = rows.map(r => r.join(",")).join("\n");
   const blob = new Blob([csv], { type: "text/csv" });
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob);
-  a.download = filename;
+  a.download = "checkin-history.csv";
   a.click();
 }
 
@@ -243,5 +274,9 @@ document.addEventListener("DOMContentLoaded", () => {
   loadContacts();
   updateActiveCheckins();
   updateCheckinHistory();
-  setInterval(updateActiveCheckins, 30000);
+
+  setInterval(() => {
+    updateActiveCheckins();
+    updateCheckinHistory();
+  }, 30000);
 });
