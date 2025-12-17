@@ -14,97 +14,113 @@
 <style>
   body {
     font-family: 'Segoe UI', Roboto, Arial, sans-serif;
-    margin:0; padding:0;
-    background:#f4f6f8; color:#333;
-    display:flex; flex-direction:column; align-items:center;
-    min-height:100vh;
+    margin: 0; padding: 0;
+    background: #f4f6f8; color: #333;
+    display: flex; flex-direction: column; align-items: center;
+    min-height: 100vh;
   }
 
   main {
-    width:100%; max-width:600px;
-    background:#fff;
-    padding:20px;
-    margin:30px 10px 0 10px;
-    border-radius:12px;
-    box-shadow:0 4px 8px rgba(0,0,0,0.1);
+    width: calc(100% - 20px); /* default horizontal spacing */
+    max-width: 600px;
+    background: #fff;
+    padding: 20px;
+    margin: 30px auto 0 auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
   }
 
   .app-header {
-    display:flex;
-    align-items:center;
-    gap:12px;
-    margin-bottom:15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 15px;
   }
 
   .app-logo {
-    height:48px;
+    height: 48px;
   }
 
   .form-group {
-    display:flex;
-    flex-direction:column;
-    gap:10px;
-    margin-bottom:15px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 15px;
   }
 
   input, select, button {
-    padding:10px;
-    font-size:16px;
-    border-radius:6px;
-    border:1px solid #ccc;
-    width:100%;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    width: 100%;
+    box-sizing: border-box;
   }
 
   button {
-    cursor:pointer;
-    border:none;
+    cursor: pointer;
+    border: none;
   }
 
-  #getLocation { background:#3498db; color:#fff; }
-  #checkin { background:#2ecc71; color:#fff; }
+  #getLocation { background: #3498db; color: #fff; }
+  #checkin { background: #2ecc71; color: #fff; }
 
   #map {
-    height:250px;
-    border-radius:8px;
-    margin-top:10px;
-    display:none;
+    height: 250px;
+    border-radius: 8px;
+    margin-top: 10px;
+    display: none;
   }
 
   #pinLockScreen {
-    position:fixed;
-    inset:0;
-    background:#2c3e50;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    z-index:9999;
+    position: fixed;
+    inset: 0;
+    background: #2c3e50;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 9999;
   }
 
   #pinContainer {
-    background:#fff;
-    padding:30px;
-    border-radius:12px;
-    width:90%;
-    max-width:320px;
-    text-align:center;
+    background: #fff;
+    padding: 30px;
+    border-radius: 12px;
+    width: 90%;
+    max-width: 320px;
+    text-align: center;
   }
 
   #pinInput {
-    font-size:28px;
-    text-align:center;
-    letter-spacing:8px;
-    margin-bottom:15px;
+    font-size: 28px;
+    text-align: center;
+    letter-spacing: 8px;
+    margin-bottom: 15px;
   }
 
   #pinSubmit {
-    background:#27ae60;
-    color:white;
-    padding:12px;
+    background: #27ae60;
+    color: white;
+    padding: 12px;
   }
 
   #pinError {
-    color:#e74c3c;
-    display:none;
+    color: #e74c3c;
+    display: none;
+  }
+
+  /* ===== Responsive adjustments for small screens ===== */
+  @media (max-width: 480px) {
+    main {
+      margin-left: 16px;   /* larger left spacing for mobile */
+      margin-right: 10px;  /* keep right spacing smaller */
+    }
+    input, select, button {
+      font-size: 15px;     /* slightly smaller for mobile */
+    }
+    #map {
+      height: 200px;       /* smaller map for mobile */
+    }
   }
 </style>
 </head>
