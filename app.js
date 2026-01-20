@@ -13,7 +13,7 @@
 
 // ===== CONFIG =====
 const API_BASE = "https://loneworking-production.up.railway.app";
-const CORRECT_PIN = "1234"; // <<-- change PIN here if desired
+const CORRECT_PIN = "1229"; // <<-- change PIN here if desired
 
 // ===== MAP GLOBALS =====
 let map = null;
